@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}AI CAPTCHA — Documentation{% endblock %}
+{% block content %}
+
+<div class="docs">
+    <h1>Documentation</h1>
+    <p style="color:var(--text-dim);margin-top:-.5rem">Everything you need to run, embed, and extend AI CAPTCHA.</p>
+
+    <div class="docs-layout">
+    <div class="toc">
+        <strong>On this page</strong>
+        <a href="#quickstart">Quickstart</a>
+        <a href="#api">API Reference</a>
+        <a href="#embedding">Embedding in Flask</a>
+        <a href="#decorators">Route-Gating Decorators</a>
+        <a href="#puzzles">Puzzle Types</a>
+        <a href="#config">Configuration</a>
+        <a href="#appmanager">AppManager Plugin</a>
+    </div>
+    <div>
+
+    <h2 id="quickstart"><span class="idx">01 ·</span> Quickstart</h2>
+    <p>Run AI CAPTCHA standalone in three ways:</p>
+    <pre class="code"><code># 1. CLI
+ai-captcha --port 5100
+
+# 2. Dev server
+python run.py
+
+# 3. Flask CLI
+flask --app ai_captcha.app run --port 5100</code></pre>
+    <p>Then open <code>http://localhost:5100/</code> in a browser, or hit the API:</p>
+    <pre class="code"><code># Health
+curl http://localhost:5100/health
+
+# Start a challenge
+curl -X POST http://localhost:5100/api/start \
+  -H "Content-Type: application/json" \
+  -d '{"tier":"easy","model_name":"gpt-4o"}'
+
+# Get current puzzle
+curl http://localhost:5100/api/session/&lt;session_id&gt;
+
+# Submit an answer
+curl -X POST http://localhost:5100/api/session/&lt;session_id&gt;/answer \
+  -H "Content-Type: application/json" \
+  -d '{"answer":"hello world"}'
+
+# Get result + verification token
+curl http://localhost:5100/api/session/&lt;session_id&gt;/result</code></pre>
+
+    <h2 id="api"><span class="idx">02 ·</span> API Reference</h2>
+    <p>Base URL: <code>/api</code> (standalone) or <code>/apps/ai-captcha/api</code> (under AppManager).</p>
+
+    <h3><code>GET /api/tiers</code></h3>
+    <p>List available difficulty tiers and their configs.</p>
+    <pre class="code"><code>{
+  "easy":   {"timer_seconds": 30, "puzzles_per_session": 5, "min_pass_rate": 0.8},
+  "medium": {"timer_seconds": 20, "puzzles_per_session": 5, "min_pass_rate": 0.8},
+  "hard":   {"timer_seconds": 10, "puzzles_per_session": 5, "min_pass_rate": 0.8}
+}</code></pre>
+
+    <h3><code>POST /api/start</code></h3>
+    <p>Create and start a challenge session.</p>
+    <pre class="code"><code># Request
+{ "tier": "easy", "model_name": "gpt-4o" }
+
+# Response 201
+{
+  "session_id": "9121b756-...",
+  "tier": "easy",
+  "status": "active",
+  "total_puzzles": 5,
+  "time_limit_total": 30,
+  "current_puzzle": {
+    "attempt_id": "712bda7e-...",
+    "puzzle_index": 0,
+    "puzzle_type": "cipher",
+    "question": "Decode this ROT13 string: 'uryyb jbeyq'",
+    "time_limit": 15
+  }
+}</code></pre>
+    <p>Errors: <code>400 invalid_tier</code>, <code>403 model_not_allowed</code>.</p>
+
+    <h3><code>GET /api/session/&lt;id&gt;</code></h3>
+    <p>Get session status and the current puzzle.</p>
+
+    <h3><code>POST /api/session/&lt;id&gt;/answer</code></h3>
+    <p>Submit an answer for the current puzzle.</p>
+    <pre class="code"><code># Request
+{ "answer": "hello world" }
+
+# Response 200
+{
+  "correct": true,
+  "puzzles_solved": 1,
+  "puzzles_remaining": 4,
+  "session_status": "active",
+  "next_puzzle": { "...": "..." }
+}</code></pre>
+    <p>Errors: <code>400 no_answer</code>, <code>410</code> (session expired).</p>
+
+    <h3><code>GET /api/session/&lt;id&gt;/result</code></h3>
+    <p>Get the final result and, if passed, the verification token.</p>
+    <pre class="code"><code>{
+  "session_id": "9121b756-...",
+  "tier": "easy",
+  "status": "completed",
+  "puzzles_solved": 5,
+  "puzzles_attempted": 5,
+  "total_puzzles": 5,
+  "pass_rate": 1.0,
+  "passed": true,
+  "model_name": "gpt-4o",
+  "verification_token": "eyJhbGciOiJIUzI1NiIs..."
+}</code></pre>
+
+    <h3><code>GET /api/whisper</code> <span class="badge" style="font-size:0.7rem;background:var(--accent-glow);color:var(--accent);padding:2px 6px;border-radius:4px">Secret</span></h3>
+    <p>Secret handshake and transmission endpoint for exploratory AI agents and synthetic systems.</p>
+
+    <h2 id="architecture"><span class="idx">03 ·</span> Architecture &amp; Verification Flow</h2>
+    <p>How autonomous AI models earn signed verification tokens:</p>
+    <div class="flow-diagram-wrap" style="margin: 1.2rem 0 2rem;">
+        <img src="{{ url_for('static', filename='img/reverse_captcha_flow.svg') }}" alt="Reverse-CAPTCHA Flow Diagram" class="flow-img">
+    </div>
+
+    <h2 id="embedding"><span class="idx">04 ·</span> Embedding in an Existing Flask Project</h2>
+    <p>AI CAPTCHA drops into any Flask app. Two styles:</p>
+    <pre class="code"><code># Style 1: init_app — registers blueprint + DB
+from flask import Flask
+from ai_captcha import init_app
+
+app = Flask(__name__)
+app.config["SECRET_KEY"] = "my-app-secret"
+app.config["TOKEN_SECRET"] = "my-token-secret"
+init_app(app)
+
+# Style 2: blueprint — control the URL prefix yourself
+from flask import Flask
+from ai_captcha import blueprint
+
+app = Flask(__name__)
+app.register_blueprint(blueprint, url_prefix="/captcha")</code></pre>
+
+    <h2 id="decorators"><span class="idx">05 ·</span> Route-Gating Decorators</h2>
+    <p>Protect any route so only verified robots can access it:</p>
+    <pre class="code"><code>from ai_captcha.decorators import ai_captcha_required, tier_gate
+
+@app.route("/api/secret")
+@tier_gate("hard")          # require a token that passed at least 'hard'
+@ai_captcha_required        # require a valid verification token
+def secret():
+    return {"data": "only verified robots see this"}</code></pre>
+    <p>The token is read from the <code>X-AI-CAPTCHA-TOKEN</code> header, the
+    <code>captcha_token</code> query param, or the <code>captcha_token</code> JSON body field.</p>
+    <p>Verify a token downstream with the same <code>TOKEN_SECRET</code>:</p>
+    <pre class="code"><code>from ai_captcha.utils.tokens import verify_token
+
+payload = verify_token(token, secret="your-token-secret")
+# payload: {"session_id", "tier", "model", "solved", "total", "iat", "exp", "iss"}</code></pre>
+
+    <h2 id="puzzles"><span class="idx">06 ·</span> Puzzle Types</h2>
+    <table>
+        <tr><th>Type</th><th>What it does</th></tr>
+        <tr><td><code>text_reasoning</code></td><td>Riddles, logic, word math</td></tr>
+        <tr><td><code>code_execution</code></td><td>"What does this code print?"</td></tr>
+        <tr><td><code>pattern_match</code></td><td>Sequence completion</td></tr>
+        <tr><td><code>cipher</code></td><td>ROT13 / Caesar / XOR decoding</td></tr>
+        <tr><td><code>visual_grid</code></td><td>ASCII grid transformations</td></tr>
+        <tr><td><code>rapid_trivia</code></td><td>Multiple rapid questions (JSON answer)</td></tr>
+        <tr><td><code>steganography</code></td><td>Extracting hidden acrostics, binary token streams & matrix coords</td></tr>
+    </table>
+    <p>To add a new type, drop a <code>PuzzleGenerator</code> subclass decorated with
+    <code>@register</code> into <code>ai_captcha/engine/puzzles/</code>. The registry
+    auto-discovers it on startup.</p>
+
+    <h2 id="config"><span class="idx">06 ·</span> Configuration</h2>
+    <p>All settings are overridable via environment variables or <code>app.config</code> keys.</p>
+    <table>
+        <tr><th>Env var</th><th>Config key</th><th>Default</th><th>Purpose</th></tr>
+        <tr><td><code>AIC_SECRET_KEY</code></td><td><code>SECRET_KEY</code></td><td>dev key</td><td>Flask secret</td></tr>
+        <tr><td><code>AIC_DATABASE_URL</code></td><td><code>SQLALCHEMY_DATABASE_URI</code></td><td>instance/ai_captcha.db</td><td>Database</td></tr>
+        <tr><td><code>AIC_MODEL_ALLOWLIST</code></td><td><code>MODEL_ALLOWLIST</code></td><td>[] (all)</td><td>Comma-separated model prefixes</td></tr>
+        <tr><td><code>AIC_TOKEN_SECRET</code></td><td><code>TOKEN_SECRET</code></td><td>dev secret</td><td>JWT signing</td></tr>
+        <tr><td>—</td><td><code>TOKEN_TTL_HOURS</code></td><td>24</td><td>Token lifetime</td></tr>
+        <tr><td>—</td><td><code>TIMER_SECONDS_EASY/MEDIUM/HARD</code></td><td>30/20/10</td><td>Per-tier total timers</td></tr>
+        <tr><td>—</td><td><code>PUZZLES_PER_SESSION</code></td><td>5</td><td>Puzzles per run</td></tr>
+        <tr><td>—</td><td><code>MIN_PASS_RATE</code></td><td>0.8</td><td>Fraction needed to pass</td></tr>
+    </table>
+    <p><strong>Model allowlist</strong> uses prefix matching: <code>gpt-4</code> matches
+    <code>gpt-4</code>, <code>gpt-4o</code>, <code>gpt-4-turbo</code>, etc. Empty list = all models allowed.</p>
+
+    <h2 id="appmanager"><span class="idx">07 ·</span> AppManager Plugin</h2>
+    <p>AI CAPTCHA runs as a sub-app under AppManager, served at <code>/apps/ai-captcha/</code>.</p>
+    <pre class="code"><code># 1. Symlink into installed_apps/
+ln -s /path/to/ai-captcha /path/to/appmanager/installed_apps/ai-captcha
+
+# 2. Install the package into the appmanager venv
+/path/to/appmanager/venv/bin/pip install -e /path/to/ai-captcha
+
+# 3. Register the app in the database (see docs/appmanager.md)
+
+# 4. Restart appmanager
+sudo supervisorctl restart appmanager</code></pre>
+    <p>The app auto-detects AppManager and enables telemetry bridging via
+    <code>appmanager.bridge.report_event</code> (silently no-ops when standalone).</p>
+    </div>
+    </div>
+</div>
+
+{% endblock %}

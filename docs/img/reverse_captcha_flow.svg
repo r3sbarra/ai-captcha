@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 240" width="100%" height="auto">
+  <defs>
+    <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1322" />
+      <stop offset="100%" stop-color="#070a12" />
+    </linearGradient>
+    <filter id="boxGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#22d3ee" flood-opacity="0.15" />
+    </filter>
+  </defs>
+
+  <rect width="900" height="240" rx="14" fill="#060911" stroke="#1b2540" stroke-width="1.5" />
+
+  <!-- Node 1: AI Agent -->
+  <g transform="translate(40, 45)">
+    <rect width="180" height="150" rx="10" fill="url(#cardGrad)" stroke="#2b3a5e" stroke-width="1.2" />
+    <circle cx="90" cy="45" r="22" fill="rgba(34, 211, 238, 0.1)" stroke="#22d3ee" stroke-width="1.5" />
+    <text x="90" y="52" font-size="20" text-anchor="middle">🤖</text>
+    <text x="90" y="92" font-family="'Plus Jakarta Sans', sans-serif" font-size="14" font-weight="700" fill="#f2f6fc" text-anchor="middle">AI Agent</text>
+    <text x="90" y="112" font-family="'JetBrains Mono', monospace" font-size="11" fill="#9aa8c0" text-anchor="middle">POST /api/start</text>
+    <text x="90" y="128" font-family="'JetBrains Mono', monospace" font-size="10" fill="#5d6e8c" text-anchor="middle">e.g. gpt-4o / claude</text>
+  </g>
+
+  <!-- Arrow 1 -->
+  <g transform="translate(230, 110)" stroke="#22d3ee" stroke-width="2" fill="none">
+    <line x1="0" y1="10" x2="35" y2="10" stroke-dasharray="4 3" />
+    <polyline points="30,5 40,10 30,15" fill="#22d3ee" />
+    <text x="20" y="-2" font-family="'JetBrains Mono', monospace" font-size="9" fill="#22d3ee" text-anchor="middle" stroke="none">REQUEST</text>
+  </g>
+
+  <!-- Node 2: Timed Puzzle Gauntlet -->
+  <g transform="translate(280, 35)">
+    <rect width="210" height="170" rx="12" fill="url(#cardGrad)" stroke="#22d3ee" stroke-width="1.5" filter="url(#boxGlow)" />
+    <rect x="15" y="15" width="180" height="24" rx="6" fill="rgba(34, 211, 238, 0.12)" />
+    <text x="105" y="31" font-family="'JetBrains Mono', monospace" font-size="11" font-weight="700" fill="#22d3ee" text-anchor="middle">⏱ 10s GAUNTLET</text>
+    
+    <text x="24" y="65" font-family="'JetBrains Mono', monospace" font-size="11" fill="#f2f6fc">1. Ciphers &amp; ROT13</text>
+    <text x="24" y="85" font-family="'JetBrains Mono', monospace" font-size="11" fill="#f2f6fc">2. Steganography</text>
+    <text x="24" y="105" font-family="'JetBrains Mono', monospace" font-size="11" fill="#f2f6fc">3. Visual Grid Matrix</text>
+    <text x="24" y="125" font-family="'JetBrains Mono', monospace" font-size="11" fill="#f2f6fc">4. Code Execution</text>
+    
+    <text x="105" y="152" font-family="'Plus Jakarta Sans', sans-serif" font-size="10" font-weight="600" fill="#34d399" text-anchor="middle">✓ Passed &gt;= 80% in time</text>
+  </g>
+
+  <!-- Arrow 2 -->
+  <g transform="translate(500, 110)" stroke="#34d399" stroke-width="2" fill="none">
+    <line x1="0" y1="10" x2="35" y2="10" stroke-dasharray="4 3" />
+    <polyline points="30,5 40,10 30,15" fill="#34d399" />
+    <text x="20" y="-2" font-family="'JetBrains Mono', monospace" font-size="9" fill="#34d399" text-anchor="middle" stroke="none">PASS TOKEN</text>
+  </g>
+
+  <!-- Node 3: Verification Token -->
+  <g transform="translate(545, 45)">
+    <rect width="145" height="150" rx="10" fill="url(#cardGrad)" stroke="#2b3a5e" stroke-width="1.2" />
+    <circle cx="72" cy="45" r="20" fill="rgba(52, 211, 153, 0.1)" stroke="#34d399" stroke-width="1.5" />
+    <text x="72" y="52" font-size="18" text-anchor="middle">🔐</text>
+    <text x="72" y="90" font-family="'Plus Jakarta Sans', sans-serif" font-size="13" font-weight="700" fill="#f2f6fc" text-anchor="middle">Signed JWT</text>
+    <text x="72" y="108" font-family="'JetBrains Mono', monospace" font-size="10" fill="#9aa8c0" text-anchor="middle">HS256 Token</text>
+    <text x="72" y="125" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#34d399" text-anchor="middle">verified: true</text>
+  </g>
+
+  <!-- Arrow 3 -->
+  <g transform="translate(700, 110)" stroke="#818cf8" stroke-width="2" fill="none">
+    <line x1="0" y1="10" x2="25" y2="10" />
+    <polyline points="20,5 30,10 20,15" fill="#818cf8" />
+  </g>
+
+  <!-- Node 4: Protected API -->
+  <g transform="translate(740, 45)">
+    <rect width="120" height="150" rx="10" fill="url(#cardGrad)" stroke="#818cf8" stroke-width="1.2" />
+    <circle cx="60" cy="45" r="20" fill="rgba(129, 140, 248, 0.12)" stroke="#818cf8" stroke-width="1.5" />
+    <text x="60" y="52" font-size="18" text-anchor="middle">🛡️</text>
+    <text x="60" y="90" font-family="'Plus Jakarta Sans', sans-serif" font-size="13" font-weight="700" fill="#f2f6fc" text-anchor="middle">Gated API</text>
+    <text x="60" y="108" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#818cf8" text-anchor="middle">@ai_captcha_req</text>
+    <text x="60" y="125" font-family="'JetBrains Mono', monospace" font-size="9.5" fill="#34d399" text-anchor="middle">200 OK</text>
+  </g>
+</svg>

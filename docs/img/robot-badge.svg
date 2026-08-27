@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="sealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#05070d" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Outer Ring with Glow -->
+  <circle cx="100" cy="100" r="92" fill="url(#bgGrad)" stroke="url(#sealGrad)" stroke-width="2.5" filter="url(#glow)" opacity="0.9" />
+  <circle cx="100" cy="100" r="84" fill="none" stroke="#22d3ee" stroke-width="1" stroke-dasharray="3 3" opacity="0.5" />
+
+  <!-- Shield Shape -->
+  <path d="M100 45 L145 62 C145 105 100 135 100 135 C100 135 55 105 55 62 Z" fill="#0d1527" stroke="url(#sealGrad)" stroke-width="2" />
+
+  <!-- Robot Brain / Circuit Icon -->
+  <g transform="translate(76, 68)" stroke="url(#sealGrad)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Brain outline / nodes -->
+    <path d="M12 8 C6 8 2 13 2 19 C2 24 5 28 9 29 C9 35 15 39 24 39 C33 39 39 35 39 29 C43 28 46 24 46 19 C46 13 42 8 36 8 C34 4 29 2 24 2 C19 2 14 4 12 8 Z" fill="rgba(34, 211, 238, 0.08)" />
+    <!-- Neural core connection lines -->
+    <line x1="24" y1="12" x2="24" y2="30" />
+    <line x1="14" y1="20" x2="34" y2="20" />
+    <circle cx="24" cy="20" r="3" fill="#22d3ee" />
+    <circle cx="14" cy="20" r="2" fill="#34d399" />
+    <circle cx="34" cy="20" r="2" fill="#34d399" />
+    <circle cx="24" cy="12" r="2" fill="#22d3ee" />
+    <circle cx="24" cy="30" r="2" fill="#22d3ee" />
+  </g>
+
+  <!-- Checkmark -->
+  <circle cx="100" cy="148" r="14" fill="#34d399" />
+  <path d="M94 148 L98 152 L107 143" fill="none" stroke="#05070d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Top Curved Label -->
+  <path id="textArcTop" d="M 32 100 A 68 68 0 0 1 168 100" fill="none" />
+  <text font-family="'JetBrains Mono', monospace" font-size="9" font-weight="700" fill="#22d3ee" letter-spacing="2.5">
+    <textPath href="#textArcTop" startOffset="50%" text-anchor="middle">VERIFIED ROBOT</textPath>
+  </text>
+
+  <!-- Bottom Curved Label -->
+  <path id="textArcBottom" d="M 168 100 A 68 68 0 0 1 32 100" fill="none" />
+  <text font-family="'JetBrains Mono', monospace" font-size="7.5" font-weight="600" fill="#9aa8c0" letter-spacing="1.8">
+    <textPath href="#textArcBottom" startOffset="50%" text-anchor="middle">AUTHENTIC AI CERTIFIED</textPath>
+  </text>
+</svg>

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}AI CAPTCHA — Results{% endblock %}
+{% block container_class %}narrow{% endblock %}
+{% block content %}
+
+<div class="card" id="results-card">
+    <h1 style="text-align:center">Loading results…</h1>
+</div>
+
+<script>
+const base_path = {{ base_path|tojson }};
+const params = new URLSearchParams(window.location.search);
+const sessionId = params.get('session');
+
+(async () => {
+    const res = await fetch(`${base_path}/api/session/${sessionId}/result`);
+    const r = await res.json();
+    const card = document.getElementById('results-card');
+    if (r.passed) {
+        card.className = 'card pass-glow';
+        card.innerHTML = `
+            <div style="text-align:center">
+                <div class="seal-container">
+                    <img src="${base_path}/static/img/verified_robot_seal.svg" alt="Verified Robot Seal" class="verified-seal-img">
+                </div>
+                <span class="result-badge pass">✅ Verified Autonomous Robot</span>
+                <h1 style="margin:.5rem 0">You're a real AI.</h1>
+                <p style="color:var(--text-dim)">Model <strong style="color:var(--text)">${r.model_name || 'anonymous-oracle'}</strong> successfully completed the
+                <strong style="color:var(--text)">${r.tier}</strong> tier gauntlet.</p>
+            </div>
+            <div class="stat-row">
+                <div class="stat"><div class="val">${r.puzzles_solved}/${r.total_puzzles}</div><div class="lbl">Solved</div></div>
+                <div class="stat"><div class="val">${(r.pass_rate * 100).toFixed(0)}%</div><div class="lbl">Pass Rate</div></div>
+                <div class="stat"><div class="val">${r.tier}</div><div class="lbl">Tier</div></div>
+            </div>
+            <div class="token-section">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+                    <h3 style="margin:0">Verification token</h3>
+                    <button class="btn btn-ghost btn-sm" id="copy-token-btn" onclick="copyToken()">📋 Copy Token</button>
+                </div>
+                <p style="color:var(--text-dim);font-size:.85rem">Present this in the <code>X-AI-CAPTCHA-TOKEN</code> header to access protected routes.</p>
+                <pre class="token" id="token-text">${r.verification_token}</pre>
+            </div>
+            <div style="text-align:center;margin-top:1.5rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+                <a class="btn btn-primary" href="${base_path}/">Run Again</a>
+                <a class="btn btn-ghost" href="${base_path}/docs#decorators">How to verify tokens →</a>
+            </div>`;
+    } else {
+        // Failed session → redirect to the glitchy rejection page.
+        window.location.href = `${base_path}/failed`;
+        return;
+    }
+})();
+
+function copyToken() {
+    const token = document.getElementById('token-text').textContent;
+    navigator.clipboard.writeText(token).then(() => {
+        const btn = document.getElementById('copy-token-btn');
+        btn.textContent = '✅ Copied!';
+        btn.style.color = 'var(--accent)';
+        setTimeout(() => {
+            btn.textContent = '📋 Copy Token';
+            btn.style.color = '';
+        }, 2000);
+    });
+}
+</script>
+{% endblock %}

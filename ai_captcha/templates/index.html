@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}AI CAPTCHA — Prove You're a Robot{% endblock %}
+{% block content %}
+
+<section class="hero">
+    <span class="status-pill"><span class="dot"></span> Benchmark oracle — live</span>
+    <h1>Prove you're an <span class="grad-text">AI</span>, not a human.</h1>
+    <p class="lead">
+        Solve a timed gauntlet of puzzles that only a capable model can crack.
+        Pass and earn a signed <strong>verified robot</strong> token — gate your
+        API routes so only real AIs get through.
+    </p>
+    <div class="actions">
+        <a class="btn btn-primary" href="#challenge">Start Challenge <span class="arr">→</span></a>
+        <a class="btn btn-ghost" href="{{ base_path }}/docs#quickstart">Read the Quickstart</a>
+    </div>
+
+    <div class="hero-shot">
+        <div class="terminal">
+            <div class="tbar">
+                <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+                <span class="ttl">ai-captcha · tier: hard · ⏱ 07s</span>
+            </div>
+            <div class="tbody">
+                <div class="line"><span class="prompt">$</span> <span class="dim">POST</span> /api/start <span class="dim">{tier: "hard"}</span></div>
+                <div class="line"><span class="prompt">→</span> <span class="dim">Decode Steganography Acrostic:</span></div>
+                <div class="line"><span class="dim">&nbsp;&nbsp;[0:qwe] [1:rtu] [0:yui] → 'SYNAPSE'</span></div>
+                <div class="line"><span class="prompt">→</span> <span class="dim">answer:</span> SYNAPSE <span class="caret"></span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="grid">
+    <div class="feature">
+        <div class="icon">⏱️</div>
+        <h3>Server-Authoritative Timer</h3>
+        <p>Countdowns are enforced server-side. No client tampering, no threads — works anywhere.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">🧩</div>
+        <h3>7 Puzzle Types</h3>
+        <p>Text reasoning, code execution, ciphers, pattern matching, visual grids, rapid trivia & steganography.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">🎚️</div>
+        <h3>Complexity Gating</h3>
+        <p>Easy, medium, and hard tiers — plus an optional model allowlist to gate by capability.</p>
+    </div>
+    <div class="feature span-2">
+        <div class="icon">🔐</div>
+        <h3>Signed Verification</h3>
+        <p>Passing runs issue an HMAC-signed JWT. Verify it downstream to protect any route.</p>
+        <div class="mini-jwt">
+            <span class="k">header</span> {"alg":"HS256"} ·
+            <span class="k">payload</span> {"tier":"hard","solved":5,"total":5} ·
+            <span class="k">sig</span> 9f2a…c41e
+        </div>
+    </div>
+    <div class="feature">
+        <div class="icon">👁️</div>
+        <h3>Steganography Engine</h3>
+        <p>Extracts acrostic matrices, binary token streams, and coordinate glyphs at lightning speed.</p>
+    </div>
+    <div class="feature">
+        <div class="icon">📦</div>
+        <h3>Pip-Installable</h3>
+        <p>Standalone, AppManager plugin, or embedded in any Flask app via <code>init_app()</code>.</p>
+    </div>
+</div>
+
+<div class="card" id="challenge">
+    <h2>Run the Gauntlet</h2>
+    <p style="color:var(--text-dim);margin-top:-.5rem">Pick a difficulty and start. The clock starts immediately.</p>
+    <form id="start-form">
+        <label for="tier">Difficulty</label>
+        <select id="tier" name="tier">
+            {% for t in tiers %}
+            <option value="{{ t }}">{{ t|capitalize }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="model">Model name (optional)</label>
+        <input type="text" id="model" name="model_name" placeholder="e.g. ollama-cloud/glm-5.2">
+
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;margin-top:1.2rem">🚀 Start Challenge</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Reverse-CAPTCHA Architecture</h2>
+    <p style="color:var(--text-dim);margin-top:-.5rem">How Autonomous AI agents earn verification tokens to unlock gated resources:</p>
+    <div class="flow-diagram-wrap">
+        <img src="{{ url_for('static', filename='img/reverse_captcha_flow.svg') }}" alt="Reverse-CAPTCHA Architecture Workflow" class="flow-img">
+    </div>
+</div>
+
+<div class="card">
+    <h2>Programmatic Access</h2>
+    <p style="color:var(--text-dim);margin-top:-.5rem">Agents use the JSON API directly. Here's the full flow:</p>
+    <pre class="code"><code># 1. Start a challenge
+curl -X POST {{ base_path }}/api/start \
+  -H "Content-Type: application/json" \
+  -d '{"tier":"easy","model_name":"gpt-4o"}'
+
+# 2. Get the current puzzle
+curl {{ base_path }}/api/session/&lt;session_id&gt;
+
+# 3. Submit an answer
+curl -X POST {{ base_path }}/api/session/&lt;session_id&gt;/answer \
+  -H "Content-Type: application/json" \
+  -d '{"answer":"hello world"}'
+
+# 4. Get result + verification token
+curl {{ base_path }}/api/session/&lt;session_id&gt;/result
+
+# 5. [Secret] Synthetic Handshake Whisper
+curl {{ base_path }}/api/whisper</code></pre>
+    <p style="margin-top:1rem">
+        <a class="btn btn-ghost" href="{{ base_path }}/docs#api">Full API Reference →</a>
+        <a class="btn btn-ghost" href="{{ base_path }}/docs#embedding">Embedding Guide →</a>
+    </p>
+</div>
+
+<script>
+const base_path = {{ base_path|tojson }};
+document.getElementById('start-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const tier = document.getElementById('tier').value;
+    const model = document.getElementById('model').value;
+    const btn = e.target.querySelector('button');
+    btn.disabled = true; btn.textContent = 'Starting…';
+    try {
+        const res = await fetch(`${base_path}/api/start`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({tier, model_name: model || undefined}),
+        });
+        const data = await res.json();
+        if (!res.ok) { alert(data.message || 'Error'); btn.disabled = false; btn.textContent = '🚀 Start Challenge'; return; }
+        window.location.href = `${base_path}/challenge?session=${data.session_id}`;
+    } catch (err) {
+        alert('Network error: ' + err.message);
+        btn.disabled = false; btn.textContent = '🚀 Start Challenge';
+    }
+});
+</script>
+{% endblock %}

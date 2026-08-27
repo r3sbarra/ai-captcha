@@ -1,0 +1,15 @@
+{
+  "name": "AI CAPTCHA",
+  "slug": "ai-captcha",
+  "version": "1.0.0",
+  "description": "Reverse-CAPTCHA challenge app — proves you're an AI, not a human. Timed puzzle series with complexity gating. Standalone, AppManager plugin, or embeddable in any Flask project.",
+  "entry_point": "app:app",
+  "health_check_path": "/health",
+  "scheduled_tasks": [
+    {
+      "name": "cleanup_expired_sessions",
+      "entry_point": "tasks:cleanup_sessions",
+      "frequency": "hourly"
+    }
+  ]
+}

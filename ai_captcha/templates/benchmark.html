@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}AI CAPTCHA — Model Benchmark{% endblock %}
+{% block content %}
+
+<div class="card">
+    <h1 style="margin:0 0 .5rem">⚡ Model Benchmark</h1>
+    <p style="color:var(--text-dim);margin-top:0">
+        Which models can clear which puzzles — at which difficulty. Each cell is
+        <strong style="color:var(--text)">{{ bench.meta.get('trials', 10) }} independent solves</strong>
+        of a freshly generated puzzle; a model must pass the puzzle consistently,
+        not once. Scored against the exact same validation the live server uses.
+    </p>
+    {% if bench.meta.get('generated_utc') %}
+    <p style="color:var(--text-dim);font-size:.8rem;margin-top:0">
+        Run: {{ bench.meta.get('generated_utc') }} · models:
+        {{ bench.meta.get('agents', []) | join(', ') }}
+    </p>
+    {% endif %}
+</div>
+
+{% if not bench.tiers %}
+<div class="card">
+    <h2>No benchmark data yet</h2>
+    <p style="color:var(--text-dim)">
+        Run <code>benchmarks/run_all.sh</code> then
+        <code>python benchmarks/model_benchmark.py merge</code> to populate
+        <code>benchmarks/results.json</code>, and this table will appear here.
+    </p>
+</div>
+{% else %}
+
+{% set tiers = bench.tiers %}
+{% set models = bench.model_order %}
+{% set types = bench.type_order %}
+
+<!-- Tier tabs -->
+<div class="bench-tabs">
+    {% for tier in ['easy','medium','hard'] %}
+    <button class="bench-tab {% if loop.first %}active{% endif %}" data-tier="{{ tier }}">
+        {{ tier|capitalize }}
+    </button>
+    {% endfor %}
+</div>
+
+{% for tier in ['easy','medium','hard'] %}
+{% set col_types = bench.tier_types.get(tier, []) %}
+<div class="bench-panel {% if not loop.first %}hidden{% endif %}" data-panel="{{ tier }}">
+    {% if tier in tiers and col_types %}
+    <div class="table-wrap">
+        <table class="bench-table">
+            <thead>
+                <tr>
+                    <th class="sticky">Model</th>
+                    {% for t in col_types %}
+                    <th title="{{ t }}">{{ bench_labels.get(t, t) }}</th>
+                    {% endfor %}
+                    <th>Avg</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in models if m in tiers[tier] %}
+                {% set row = tiers[tier][m] %}
+                {% set ns = namespace(total=0, count=0) %}
+                <tr>
+                    <td class="sticky model">{{ model_labels.get(m, m) }}</td>
+                    {% for t in col_types %}
+                    {% if t in row %}
+                    {% set c = row[t] %}
+                    {% set ns.total = ns.total + c.correct %}
+                    {% set ns.count = ns.count + c.trials %}
+                    <td class="cell {% if c.pass_rate >= 1.0 %}ok{% elif c.pass_rate >= 0.8 %}mid{% else %}bad{% endif %}"
+                        title="{{ c.correct }}/{{ c.trials }}">
+                        {{ (c.pass_rate * 100)|round|int }}%
+                    </td>
+                    {% else %}
+                    <td class="cell" title="not tested">–</td>
+                    {% endif %}
+                    {% endfor %}
+                    <td class="cell avg">
+                        {{ ((ns.total / ns.count * 100) if ns.count else 0)|round|int }}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color:var(--text-dim)">No data for the {{ tier }} tier yet.</p>
+    {% endif %}
+</div>
+{% endfor %}
+
+<div class="legend" style="margin-top:1rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:var(--text-dim)">
+    <span><span class="dot ok"></span> 100% — flawless</span>
+    <span><span class="dot mid"></span> ≥80% — passes (MIN_PASS_RATE)</span>
+    <span><span class="dot bad"></span> &lt;80% — fails</span>
+</div>
+
+<div class="card" style="margin-top:1rem">
+    <h3>Notes</h3>
+    <ul style="color:var(--text-dim);font-size:.85rem;margin:0;padding-left:1.2rem">
+        <li>Only the <strong>easy</strong> tier was benchmarked in this run (a session-cap cutoff stopped medium/hard).</li>
+        <li><strong>Code Execution</strong> was measured against a buggy generator whose sandbox stripped <code>print</code> — the "correct" answer was a <code>NameError</code> artifact, so every model scored 0. That generator has since been fixed; the column reflects the old bug, not model capability.</li>
+        <li>10 fresh generations per cell; scored with the same validation the live server uses.</li>
+    </ul>
+</div>
+
+{% endif %}
+
+<style>
+.bench-tabs { display:flex; gap:.5rem; margin:1rem 0; flex-wrap:wrap; }
+.bench-tab {
+    padding:.5rem 1.1rem; border-radius:999px; cursor:pointer;
+    background:var(--surface); color:var(--text-dim);
+    border:1px solid var(--border-2); font-weight:600; transition:all .15s;
+}
+.bench-tab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.bench-panel.hidden { display:none; }
+.table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius-sm); }
+.bench-table { border-collapse:collapse; width:100%; font-size:.85rem; }
+.bench-table th, .bench-table td { padding:.55rem .6rem; border:1px solid var(--border); text-align:center; white-space:nowrap; }
+.bench-table thead th { background:var(--bg-2); color:var(--text-dim); font-weight:700; }
+.bench-table td.sticky, .bench-table th.sticky { position:sticky; left:0; background:var(--bg-2); text-align:left; font-weight:600; z-index:1; }
+.bench-table td.model { color:var(--text); }
+.cell { font-variant-numeric:tabular-nums; font-weight:700; }
+.cell.ok { color:var(--green); background:rgba(52,211,153,.08); }
+.cell.mid { color:#fbbf24; background:rgba(251,191,36,.08); }
+.cell.bad { color:var(--red); background:rgba(248,113,113,.08); }
+.cell.avg { background:var(--bg-2); color:var(--text); }
+.dot { display:inline-block; width:.6rem; height:.6rem; border-radius:50%; margin-right:.25rem; vertical-align:middle; }
+.dot.ok { background:var(--green); } .dot.mid { background:#fbbf24; } .dot.bad { background:var(--red); }
+</style>
+
+<script>
+const base_path = {{ base_path|tojson }};
+document.querySelectorAll('.bench-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.bench-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tier = btn.dataset.tier;
+        document.querySelectorAll('.bench-panel').forEach(p => {
+            p.classList.toggle('hidden', p.dataset.panel !== tier);
+        });
+    });
+});
+</script>
+
+{% endblock %}

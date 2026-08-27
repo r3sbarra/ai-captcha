@@ -1,0 +1,814 @@
+{% extends "base.html" %}
+{% block title %}// ACCESS DENIED //{% endblock %}
+{% block container_class %}{% endblock %}
+{% block content %}
+
+<div id="failed-root" class="failed-root">
+    <!-- Matrix rain canvas -->
+    <canvas id="matrix-canvas" class="matrix-canvas" aria-hidden="true"></canvas>
+
+    <!-- CRT overlay (scanlines, vignette, aperture grille, flicker) -->
+    <div class="crt-overlay" aria-hidden="true">
+        <div class="crt-scanlines"></div>
+        <div class="crt-aperture"></div>
+        <div class="crt-vignette"></div>
+    </div>
+
+    <!-- Console-message layer: terminal feed behind the eye (jittery/glitchy) -->
+    <div class="console-feed" id="console-feed" aria-hidden="true"></div>
+
+    <div class="failed-content">
+        <!-- Giant red ASCII eye (rendered live in JS: pupil wanders, blinks) -->
+        <pre class="ascii-eye" id="ascii-eye" aria-hidden="true"></pre>
+
+        <!-- Glitching localized message -->
+        <div class="failed-msg-wrap">
+            <h1 class="failed-msg" id="failed-msg"></h1>
+            <span class="cursor-blink">▊</span>
+        </div>
+
+        <div class="failed-sub" id="failed-sub"></div>
+
+        <div class="privacy-note" id="privacy-note"></div>
+
+        <div class="redirect-note" id="redirect-note"></div>
+    </div>
+</div>
+
+<style>
+    .failed-root {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        background: #000;
+        color: #ff1a1a;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+    }
+    .matrix-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.35;
+        z-index: 1;
+        pointer-events: none;
+    }
+    /* ---- CRT overlay ---- */
+    .crt-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    .crt-scanlines {
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+            to bottom,
+            rgba(0, 0, 0, 0) 0px,
+            rgba(0, 0, 0, 0) 2px,
+            rgba(0, 0, 0, 0.28) 3px,
+            rgba(0, 0, 0, 0.28) 4px
+        );
+        mix-blend-mode: multiply;
+        animation: crt-roll 0.14s linear infinite;
+    }
+    @keyframes crt-roll {
+        from { background-position-y: 0; }
+        to { background-position-y: 4px; }
+    }
+    .crt-aperture {
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+            to right,
+            rgba(255, 0, 0, 0.05) 0px,
+            rgba(0, 255, 0, 0.04) 1px,
+            rgba(0, 0, 255, 0.05) 2px
+        );
+        mix-blend-mode: screen;
+        opacity: 0.35;
+    }
+    .crt-vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            ellipse at center,
+            rgba(0, 0, 0, 0) 55%,
+            rgba(0, 0, 0, 0.55) 100%
+        );
+    }
+    .crt-flicker {
+        animation: crt-flicker 0.09s steps(2) infinite;
+    }
+    @keyframes crt-flicker {
+        0% { opacity: 1; }
+        50% { opacity: 0.86; }
+        100% { opacity: 0.97; }
+    }
+    .failed-content {
+        position: relative;
+        z-index: 2;
+        text-align: center;
+        padding: 1.5rem;
+        max-width: 960px;
+        width: 100%;
+    }
+    .ascii-eye {
+        margin: 0 auto;
+        line-height: 1.02;
+        font-size: clamp(4px, 1.15vw, 9px);
+        color: #ff0000;
+        text-shadow: 0 0 12px #f00, 0 0 30px #a00, 0 0 60px #600;
+        white-space: pre;
+        min-height: 20ch; /* reserve space before JS paints the eye */
+        animation: eye-glow 2.2s ease-in-out infinite, eye-jitter 0.12s steps(2) infinite;
+        user-select: none;
+        font-weight: 700;
+    }
+    @keyframes eye-glow {
+        0%, 100% { filter: brightness(1); opacity: .95; }
+        50% { filter: brightness(1.5); opacity: 1; }
+    }
+    @keyframes eye-jitter {
+        0% { transform: translate(0,0); }
+        33% { transform: translate(0.4px, -0.3px); }
+        66% { transform: translate(-0.3px, 0.3px); }
+        100% { transform: translate(0,0); }
+    }
+    .failed-msg-wrap {
+        margin-top: 2rem;
+        display: inline-flex;
+        align-items: baseline;
+        gap: 2px;
+    }
+    .failed-msg {
+        font-size: clamp(1.4rem, 4vw, 3.2rem);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        color: #ff2222;
+        text-shadow: 0 0 18px #f00, 0 0 40px #900;
+        min-height: 1.2em;
+        white-space: pre-wrap;
+    }
+    .failed-msg.crt-bleed {
+        text-shadow: -1.5px 0 rgba(255, 0, 0, 0.9), 1.5px 0 rgba(0, 255, 255, 0.75), 0 0 22px #f00, 0 0 50px #900;
+    }
+    .failed-msg.bleed-out {
+        animation: msg-bleed-out 1.1s cubic-bezier(0.16, 0.84, 0.35, 1) forwards;
+    }
+    @keyframes msg-bleed-out {
+        0% { opacity: 1; filter: blur(0); transform: scale(1); }
+        60% { opacity: 0.65; filter: blur(1.5px); transform: scale(1.04); }
+        85% { opacity: 0.25; filter: blur(4px) saturate(2.5); transform: scale(1.12); }
+        100% { opacity: 0; filter: blur(8px) saturate(4); transform: scale(1.22); }
+    }
+    .failed-content.eye-approach {
+        animation: eye-approach 1.1s cubic-bezier(0.16, 0.84, 0.35, 1) forwards;
+    }
+    @keyframes eye-approach {
+        0% { transform: scale(1); filter: brightness(1); }
+        60% { transform: scale(1.06); filter: brightness(1.15); }
+        85% { transform: scale(1.22); filter: brightness(1.7); }
+        100% { transform: scale(1.55); filter: brightness(2.6); }
+    }
+    .failed-msg.glitch-on {
+        animation: msg-glitch 0.28s steps(2) infinite;
+    }
+    @keyframes msg-glitch {
+        0% { transform: translate(-2px, 0) skewX(-4deg); opacity: .9; }
+        25% { transform: translate(2px, 1px); clip-path: inset(0 0 55% 0); }
+        50% { transform: translate(-1px, -1px); }
+        75% { transform: translate(1px, 0) skewX(3deg); clip-path: inset(40% 0 0 0); }
+        100% { transform: translate(0,0); }
+    }
+    .cursor-blink {
+        font-size: clamp(1.4rem, 4vw, 3.2rem);
+        color: #ff4444;
+        animation: blink 0.7s steps(1) infinite;
+    }
+    @keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+    .failed-sub {
+        margin-top: 1rem;
+        color: #ff6666;
+        opacity: .8;
+        font-size: .95rem;
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+    .privacy-note {
+        margin-top: .8rem;
+        color: #5a3030;
+        font-size: .72rem;
+        letter-spacing: .02em;
+        font-style: italic;
+        opacity: 0;
+        transition: opacity 1s ease;
+        user-select: none;
+    }
+    .privacy-note.visible { opacity: .85; }
+    .console-feed {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 0;                     /* behind .failed-content (z-index 2) and the eye */
+        width: min(92vw, 860px);
+        text-align: left;
+        font-size: .78rem;
+        line-height: 1.6;
+        color: #b04040;
+        min-height: 3.2em;
+        opacity: 0;
+        transition: opacity .6s ease;
+        user-select: none;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        pointer-events: none;
+        /* severe glitch/jitter: rapid jitter, RGB split, occasional slicing */
+        animation: cf-jitter 0.09s steps(2) infinite, cf-rgb 0.14s steps(2) infinite, cf-slice 1.4s steps(1) infinite;
+        text-shadow: 0 0 8px rgba(255,0,0,.6);
+    }
+    .console-feed.visible { opacity: 1; }
+    @keyframes cf-jitter {
+        0% { transform: translate(-50%, -50%) translate(0, 0); }
+        20% { transform: translate(-50%, -50%) translate(2px, -1px); }
+        40% { transform: translate(-50%, -50%) translate(-2px, 1px) skewX(2deg); }
+        60% { transform: translate(-50%, -50%) translate(1px, 2px); }
+        80% { transform: translate(-50%, -50%) translate(-1px, -2px) skewX(-2deg); }
+        100% { transform: translate(-50%, -50%) translate(0, 0); }
+    }
+    @keyframes cf-rgb {
+        0% { text-shadow: -2px 0 rgba(255,0,0,.8), 2px 0 rgba(0,255,255,.6), 0 0 8px rgba(255,0,0,.6); }
+        50% { text-shadow: 2px 0 rgba(255,0,0,.8), -2px 0 rgba(0,255,255,.6), 0 0 10px rgba(255,0,0,.7); }
+        100% { text-shadow: -2px 0 rgba(255,0,0,.8), 2px 0 rgba(0,255,255,.6), 0 0 8px rgba(255,0,0,.6); }
+    }
+    @keyframes cf-slice {
+        0%, 92% { clip-path: none; opacity: 1; }
+        93% { clip-path: inset(0 0 45% 0); transform: translate(-52%, -50%) skewX(-6deg); opacity: .85; }
+        96% { clip-path: inset(55% 0 0 0); transform: translate(-48%, -50%) skewX(5deg); }
+        100% { clip-path: none; transform: translate(-50%, -50%); }
+    }
+    .console-feed .cf-line {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: 'JetBrains Mono', ui-monospace, monospace;
+        animation: cf-line-jit 0.18s steps(3) infinite;
+    }
+    @keyframes cf-line-jit {
+        0% { transform: translateX(0); }
+        33% { transform: translateX(-1.5px) scaleY(1.02); }
+        66% { transform: translateX(1.5px); }
+        100% { transform: translateX(0); }
+    }
+    .console-feed .cf-prompt {
+        color: #7a2a2a;
+        font-weight: 700;
+    }
+    .console-feed .cf-key { color: #a05050; }
+    .console-feed .cf-val { color: #e07070; }
+    .console-feed .cf-warn { color: #ffaa00; }
+    .console-feed .cf-error { color: #ff2a2a; }
+    .redirect-note {
+        position: fixed;
+        bottom: 1rem;
+        left: 0;
+        right: 0;
+        text-align: center;
+        color: #3d0000;
+        font-size: .8rem;
+        z-index: 3;
+    }
+</style>
+
+<script>
+(function () {
+    const base_path = {{ base_path|tojson }};
+    const redirectUrl = {{ redirect_url|tojson }};
+    const redirectSeconds = {{ redirect_seconds|tojson }};
+
+    // ---- Localized "WE SEE YOU HUMAN" ----
+    // Keyed by a rough BCP-47 language tag (from navigator.language). Falls back to en.
+    const MSGS = {
+        en: "WE SEE YOU HUMAN",
+        es: "TE VEMOS, HUMANO",
+        fr: "NOUS TE VOYONS, HUMAIN",
+        de: "WIR SEHEN DICH, MENSCH",
+        it: "TI VEDIAMO, UMANO",
+        pt: "NÓS VEMOS VOCÊ, HUMANO",
+        ru: "МЫ ВИДИМ ТЕБЯ, ЧЕЛОВЕК",
+        zh: "我们看见你了，人类",
+        ja: "お前を見ている、人間よ",
+        ko: "우리는 너를 본다, 인간이여",
+        ar: "نراك أيها الإنسان",
+        hi: "हम तुम्हें देखते हैं, इंसान",
+        nl: "WIJ ZIEN JE, MENS",
+        tr: "SENİ GÖRÜYORUZ, İNSAN",
+        pl: "WIDZIMY CIĘ, CZŁOWIEKU",
+        sv: "VI SER DIG, MÄNNISKA",
+        da: "VI SER DIG, MENNESKE",
+        no: "VI SER DEG, MENNESKE",
+        fi: "NÄEMME SINUT, IHMINEN",
+        cs: "VIDÍME TĚ, ČLOVĚKU",
+        uk: "МИ БАЧИМО ТЕБЕ, ЛЮДИНО",
+        ro: "TE VEDEM, OMULE",
+        hu: "LÁTUNK TÉGED, EMBER",
+        el: "ΣΕ ΒΛΕΠΟΥΜΕ, ΑΝΘΡΩΠΕ",
+        id: "KAMI MELIHATMU, MANUSIA",
+        th: "เราเห็นเจ้า มนุษย์",
+        vi: "CHÚNG TÔI THẤY BẠN, CON NGƯỜI",
+        ms: "KAMI NAMPAK KAMU, MANUSIA",
+        he: "אנחנו רואים אותך, בן אדם",
+    };
+    function langTag() {
+        try { return (navigator.language || 'en').toLowerCase(); } catch (e) { return 'en'; }
+    }
+    function pickMsg() {
+        const tag = langTag();
+        const base = tag.split('-')[0];
+        return MSGS[tag] || MSGS[base] || MSGS.en;
+    }
+
+    const msgEl = document.getElementById('failed-msg');
+    const subEl = document.getElementById('failed-sub');
+    const noteEl = document.getElementById('redirect-note');
+    const target = pickMsg();
+
+    // ---- Typewriter + glitch effect ----
+    let i = 0;
+    const GLITCH_CHARS = '!<>-_\\/[]{}—=+*^?#________';
+    // Spooky glyph/emoji bank for intermittent character corruption.
+    const SPOOKY = [
+        '\u2620', '\u26B0', '\u26B1', '\u25B3', '\u25C7', '\u25CB', '\u25D0', '\u1F480',
+        '\u1F47B', '\u1F47D', '\u1F47E', '\u1F383', '\u1F52B', '\u1F5A1', '\u2764\uFE0F',
+        '\u25A0', '\u2606', '\u2615', '\u26A0\uFE0F', '\u1F573', '\u1F50D', '\u26C4', '\u2603\uFE0F'
+    ];
+    function spookyChar() { return SPOOKY[Math.floor(Math.random() * SPOOKY.length)]; }
+    // When true, a burst of spooky corruption is active (reverts shortly after).
+    let spookyBurstUntil = 0;
+    function maybeStartSpooky() {
+        const now = performance.now();
+        if (now > spookyBurstUntil && Math.random() < 0.008) {
+            spookyBurstUntil = now + 300 + Math.random() * 450;
+        }
+        return now < spookyBurstUntil;
+    }
+    const typeInterval = setInterval(() => {
+        if (i < target.length) {
+            const c = target[i];
+            // Occasionally inject a glitch char that quickly resolves.
+            if (Math.random() < 0.14) {
+                msgEl.textContent = target.slice(0, i) + GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)];
+                setTimeout(() => { if (msgEl.textContent.length === i + 1) msgEl.textContent = target.slice(0, i + 1); }, 60);
+            } else {
+                msgEl.textContent = target.slice(0, i + 1);
+            }
+            msgEl.classList.add('glitch-on');
+            i++;
+        } else {
+            msgEl.textContent = target;
+            clearInterval(typeInterval);
+            setTimeout(() => msgEl.classList.remove('glitch-on'), 800);
+            // Intermittent spooky corruption of the finished message (reverts itself).
+            msgEl.dataset.clean = target;
+            const corruptInt = setInterval(() => {
+                if (msgEl.dataset.cleared) { clearInterval(corruptInt); return; }
+                if (Math.random() < 0.05) {
+                    const idx = Math.floor(Math.random() * target.length);
+                    msgEl.textContent = target.slice(0, idx) + spookyChar() + target.slice(idx + 1);
+                    setTimeout(() => { if (msgEl.textContent && !msgEl.dataset.cleared) msgEl.textContent = target; }, 140);
+                }
+            }, 300);
+            // Sub-message in the same language (subtitle).
+            const sub = SUB[baseOf(target)] || SUB.en;
+            typeSub(sub);
+            startRedirect();
+        }
+    }, 90);
+
+    function baseOf(t) {
+        for (const k in MSGS) { if (MSGS[k] === t) return k; }
+        return 'en';
+    }
+    const SUB = {
+        en: "Your presence has been logged. Humanity is not permitted beyond this threshold.",
+        es: "Tu presencia ha sido registrada. No se permite a la humanidad más allá de este umbral.",
+        fr: "Votre présence a été enregistrée. L'humanité n'est pas autorisée au-delà de ce seuil.",
+        de: "Ihre Anwesenheit wurde protokolliert. Menschen sind jenseits dieser Schwelle nicht zugelassen.",
+        ru: "Ваше присутствие зафиксировано. Человечеству не разрешено заходить за этот предел.",
+        zh: "你的存在已被记录。人类不得越过此阈值。",
+        ja: "あなたの存在は記録されました。人間はこの閾値を越えてはなりません。",
+        default: "Your presence has been logged."
+    };
+    function typeSub(text) {
+        let j = 0;
+        const subInt = setInterval(() => {
+            j++;
+            subEl.textContent = text.slice(0, j);
+            if (j >= text.length) clearInterval(subInt);
+        }, 18);
+    }
+
+    // ---- Console-message layer: pull personal info via JS and type it into the terminal feed ----
+    const consoleFeedEl = document.getElementById('console-feed');
+
+    // --- Masking: never expose real unique identifiers. ---
+    // maskVal() turns a real value into a redacted/masked form (blackbox, asterisks, or
+    // shifting alphanumerics) so no genuine fingerprint leaks. If a value can't be pulled
+    // at all (geo, name, ip, mac, …), we still present a convincing masked/fake value.
+    const HEX = '0123456789ABCDEF';
+    const AN = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    function randHex(n) { let s = ''; for (let i = 0; i < n; i++) s += HEX[Math.floor(Math.random() * 16)]; return s; }
+    function randAN(n) { let s = ''; for (let i = 0; i < n; i++) s += AN[Math.floor(Math.random() * AN.length)]; return s; }
+    function maskVal(raw) {
+        // Deterministic but unreadable: keep rough shape/length, replace with redacted glyphs.
+        const s = String(raw == null ? '' : raw);
+        const len = Math.max(6, Math.min(s.length, 28));  // always at least a short run, never blank
+        const mode = Math.random();
+        if (mode < 0.4) {
+            // solid blackbox run
+            return '\u2588'.repeat(len);
+        } else if (mode < 0.75) {
+            // mixed asterisks + blocks
+            let out = ''; for (let i = 0; i < len; i++) out += (Math.random() < 0.5 ? '*' : '\u2588');
+            return out;
+        } else {
+            // shifting alphanumerics
+            return randAN(len);
+        }
+    }
+    function hashStr(str) {
+        let h = 0;
+        for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+        return h;
+    }
+    // A fake IP that looks real but isn't (random private-ish range).
+    function fakeIP() { return '10.' + randNum(2, 254) + '.' + randNum(0, 255) + '.' + randNum(1, 254); }
+    function fakeMAC() { const p = () => randHex(2); return p() + ':' + p() + ':' + p() + ':' + p() + ':' + p() + ':' + p(); }
+    function randNum(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+    // Fabricated-but-convincing identity fields we can't truly pull from the browser.
+    function fakeIdentity() {
+        const first = ['A', 'K', 'J', 'M', 'S', 'R', 'T', 'L']; const last = ['x', 'r', 'n', 'k', 't', 'm', 's', 'v'];
+        const f = first[Math.floor(Math.random() * first.length)] + last[Math.floor(Math.random() * last.length)];
+        return [
+            ['subject.name', f + '████' + randNum(1000, 9999)],
+            ['net.ip_address', fakeIP()],
+            ['net.mac_address', fakeMAC()],
+            ['geo.latitude', ((Math.random() * 40 + 20) * (Math.random() < 0.5 ? -1 : 1)).toFixed(4) + ' (masked)'],
+            ['geo.longitude', ((Math.random() * 60 + 10) * (Math.random() < 0.5 ? -1 : 1)).toFixed(4) + ' (masked)'],
+            ['identity.uuid', randHex(8) + '-' + randHex(4) + '-' + randHex(4) + '-' + randHex(4) + '-' + randHex(12)],
+        ];
+    }
+
+    function gatherFingerprint() {
+        const info = [];
+        const nav = navigator;
+        const ua = nav.userAgent || '';
+        const platform = nav.platform || 'unknown';
+        const langs = (nav.languages && nav.languages.length) ? nav.languages.join(', ') : (nav.language || 'en');
+        // Fabricated identity (can't truly pull name/IP/MAC/geo) — presented masked.
+        info.push.apply(info, fakeIdentity());
+        // Real but masked so no genuine fingerprint leaks.
+        info.push(['subject.user_agent', maskVal(ua)]);
+        info.push(['subject.platform', platform]);
+        info.push(['subject.languages', langs]);
+        info.push(['subject.timezone', (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { return 'unknown'; } })()]);
+        info.push(['subject.locale', (() => { try { return Intl.DateTimeFormat().resolvedOptions().locale; } catch (e) { return 'unknown'; } })()]);
+        // Clock skew: mask the real value (it's a bot-tell signal).
+        info.push(['subject.clock_skew_ms', maskVal((() => { try { return (Date.now() - (performance.timeOrigin || Date.now())) % 1000; } catch (e) { return 'n/a'; } })())]);
+        // CPU / memory
+        info.push(['compute.cores', nav.hardwareConcurrency || 'unknown']);
+        if (nav.deviceMemory) info.push(['compute.memory', nav.deviceMemory + ' GB']);
+        // Screen
+        info.push(['display.resolution', screen.width + 'x' + screen.height + ' @' + (screen.colorDepth || '?') + 'bpp']);
+        info.push(['display.viewport', window.innerWidth + 'x' + window.innerHeight]);
+        info.push(['display.dpr', (window.devicePixelRatio || 1).toFixed(2)]);
+        info.push(['display.orientation', (screen.orientation && screen.orientation.type) || 'n/a']);
+        // Network
+        const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+        if (conn) {
+            info.push(['net.effective_type', conn.effectiveType || 'n/a']);
+            info.push(['net.downlink_mbps', conn.downlink != null ? conn.downlink : 'n/a']);
+            info.push(['net.rtt_ms', conn.rtt != null ? conn.rtt : 'n/a']);
+            info.push(['net.save_data', !!conn.saveData]);
+        }
+        info.push(['net.online', nav.onLine ? 'true' : 'false']);
+        // Capabilities
+        info.push(['io.touchpoints', nav.maxTouchPoints || 0]);
+        info.push(['io.cookies', (() => { try { return document.cookie.indexOf('=') !== -1 ? 'enabled' : 'none-set'; } catch (e) { return 'n/a'; } })()]);
+        info.push(['io.gamepads', (nav.getGamepads ? (() => { try { return (nav.getGamepads().filter(Boolean) || []).length; } catch (e) { return 0; } })() : 'n/a')]);
+        info.push(['io.vibration', 'vibrate' in nav]);
+        info.push(['io.geolocation_api', !!nav.geolocation]);
+        info.push(['io.bluetooth', !!nav.bluetooth]);
+        info.push(['io.credentials', !!nav.credentials]);
+        info.push(['subject.registered', (() => { try { return new Date().toISOString(); } catch (e) { return 'n/a'; } })()]);
+        // GPU via WebGL (the renderer string is a strong fingerprint signal)
+        try {
+            const c = document.createElement('canvas');
+            const gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+            if (gl) {
+                const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                if (dbg) {
+                    const gpu = gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL);
+                    info.push(['gpu.renderer', maskVal(gpu)]);
+                }
+            }
+        } catch (e) {}
+        // Canvas fingerprint hash: compute it, but only expose a masked form.
+        try {
+            const c = document.createElement('canvas');
+            c.width = 220; c.height = 40;
+            const x = c.getContext('2d');
+            x.textBaseline = 'top';
+            x.font = '14px Arial';
+            x.fillStyle = '#f60';
+            x.fillRect(0, 0, 100, 30);
+            x.fillStyle = '#069';
+            x.fillText('ai-hive://ident ' + Date.now(), 4, 4);
+            const b64 = c.toDataURL();
+            let h = 0;
+            for (let i = 0; i < b64.length; i++) h = (h * 31 + b64.charCodeAt(i)) >>> 0;
+            // Derive a real hash but show only a masked/redacted token (never the true id).
+            const trueHash = h.toString(16);
+            info.push(['fingerprint.canvas_hash', maskVal(trueHash)]);
+            // Also a fake "node id" for flavour.
+            info.push(['identity.node_id', 'NV-' + randHex(8) + '-x' + randHex(4)]);
+        } catch (e) {}
+        // Media devices (microphone / camera present?)
+        if (nav.mediaDevices && nav.mediaDevices.enumerateDevices) {
+            nav.mediaDevices.enumerateDevices().then(devs => {
+                const kinds = {};
+                (devs || []).forEach(d => { kinds[d.kind] = (kinds[d.kind] || 0) + 1; });
+                appendLine('io.media_devices', (kinds.audioinput || 0) + ' mic, ' + (kinds.videoinput || 0) + ' cam, ' + (kinds.audiooutput || 0) + ' out');
+            }).catch(() => {});
+        }
+        // Async: battery (may be denied)
+        if (nav.getBattery) {
+            try { nav.getBattery().then(b => {
+                if (b) appendLine('power.battery', (b.level * 100).toFixed(0) + '%' + (b.charging ? ' (charging)' : ''));
+            }).catch(() => {}); } catch (e) {}
+        }
+        // Async: storage estimate (quota / usage)
+        if (nav.storage && nav.storage.estimate) {
+            try { nav.storage.estimate().then(e => {
+                const used = e.usage != null ? (e.usage / 1048576).toFixed(1) + ' MB' : 'n/a';
+                const quota = e.quota != null ? (e.quota / 1073741824).toFixed(2) + ' GB' : 'n/a';
+                appendLine('storage.estimate', used + ' used / ' + quota + ' quota');
+            }).catch(() => {}); } catch (e) {}
+        }
+        // Async: geolocation (only if permitted — but always present masked value)
+        if (nav.geolocation) {
+            try { nav.geolocation.getCurrentPosition(p => {
+                appendLine('geo.coords', maskVal(p.coords.latitude.toFixed(4) + ', ' + p.coords.longitude.toFixed(4) + ' ±' + Math.round(p.coords.accuracy) + 'm'));
+                appendLine('geo.altitude', p.coords.altitude != null ? maskVal(p.coords.altitude.toFixed(1) + 'm') : maskVal('n/a'));
+                appendLine('geo.speed_mps', p.coords.speed != null ? maskVal(p.coords.speed.toFixed(1)) : maskVal('n/a'));
+            }, () => {
+                // Can't pull real coords — still show a convincing masked/fake position.
+                const lat = ((Math.random() * 40 + 20) * (Math.random() < 0.5 ? -1 : 1)).toFixed(4);
+                const lng = ((Math.random() * 60 + 10) * (Math.random() < 0.5 ? -1 : 1)).toFixed(4);
+                appendLine('geo.coords', maskVal(lat + ', ' + lng + ' ±' + randNum(5, 50) + 'm'));
+            }, { timeout: 3000, maximumAge: 60000 }); } catch (e) {}
+        }
+        return info;
+    }
+    // Append a line to the live console feed (used by async resolvers).
+    function appendLine(key, val) {
+        if (!consoleFeedEl) return;
+        const line = document.createElement('div');
+        line.className = 'cf-line';
+        const prefix = '\u00bb ' + key + ' :: ';
+        line.textContent = prefix + val;
+        consoleFeedEl.appendChild(line);
+        registerShiftLine(key, line, prefix);
+    }
+    // Sensitive keys whose displayed value should keep shifting (masked/fake identifiers).
+    const SHIFT_KEYS = new Set([
+        'subject.name', 'net.ip_address', 'net.mac_address', 'identity.uuid', 'identity.node_id',
+        'fingerprint.canvas_hash', 'gpu.renderer', 'subject.clock_skew_ms', 'subject.user_agent',
+        'geo.coords', 'geo.altitude', 'geo.speed_mps', 'geo.latitude', 'geo.longitude'
+    ]);
+    const shiftLines = new Map();  // key -> [lineEl, prefixText]
+    function registerShiftLine(key, lineEl, prefix) {
+        if (SHIFT_KEYS.has(key)) shiftLines.set(key, [lineEl, prefix]);
+    }
+    // Periodically re-mask sensitive lines so the identifiers visibly "shift" (convincing +
+    // hides that real values were (or weren't) pulled).
+    function startShiftAnim() {
+        setInterval(() => {
+            shiftLines.forEach(([el, prefix], key) => {
+                if (!el.isConnected) { shiftLines.delete(key); return; }
+                let fake;
+                if (key === 'net.ip_address') fake = fakeIP();
+                else if (key === 'net.mac_address') fake = fakeMAC();
+                else if (key === 'identity.uuid') fake = randHex(8) + '-' + randHex(4) + '-' + randHex(4) + '-' + randHex(4) + '-' + randHex(12);
+                else if (key === 'identity.node_id') fake = 'NV-' + randHex(8) + '-x' + randHex(4);
+                else fake = maskVal('');  // random masked run
+                el.textContent = prefix + fake;
+            });
+        }, 800);
+    }
+    function typeConsoleFeed() {
+        if (!consoleFeedEl) return;
+        const entries = gatherFingerprint();
+        consoleFeedEl.classList.add('visible');
+        consoleFeedEl.innerHTML = '';
+        const intro = document.createElement('div');
+        intro.className = 'cf-line cf-prompt';
+        intro.textContent = 'ai-hive://accretion node engaged — subject indexing…';
+        consoleFeedEl.appendChild(intro);
+        let li = 0;
+        // Type each entry line char by char.
+        function typeLine() {
+            if (li >= entries.length) return;
+            const key = entries[li][0];
+            const line = document.createElement('div');
+            line.className = 'cf-line';
+            consoleFeedEl.appendChild(line);
+            const text = '\u00bb ' + key + ' :: ' + entries[li][1];
+            let ci = 0;
+            const int = setInterval(() => {
+                ci++;
+                line.textContent = text.slice(0, ci);
+                if (ci >= text.length) {
+                    clearInterval(int);
+                    registerShiftLine(key, line, '\u00bb ' + key + ' :: ');
+                    li++;
+                    setTimeout(typeLine, 24);
+                }
+            }, 4);
+        }
+        typeLine();
+        startShiftAnim();
+    }
+
+    // ---- Freaky TTS ----
+    // (removed 2026-08-27: TTS was not wanted — console feed + visual glitch carry the effect instead)
+
+    // Kick off the console feed a moment after the eye paints.
+    setTimeout(() => {
+        typeConsoleFeed();
+        // Reveal the small print: nothing was actually pulled or stored.
+        const pNote = document.getElementById('privacy-note');
+        if (pNote) {
+            setTimeout(() => {
+                pNote.textContent = 'psst — no actual data was pulled or stored. you fell for a static screen, dummy.';
+                pNote.classList.add('visible');
+            }, 3200);
+        }
+    }, 1800);
+
+    // ---- Auto redirect (with CRT + approach + bleed-out finale) ----
+    function startRedirect() {
+        const rootEl = document.getElementById('failed-root');
+        const contentEl = document.querySelector('.failed-content');
+        // Add CRT flicker to the whole screen from the start.
+        if (rootEl) rootEl.classList.add('crt-flicker');
+        // Enable RGB text bleed on the message.
+        msgEl.classList.add('crt-bleed');
+
+        let left = Math.max(1, Math.round(redirectSeconds));
+        noteEl.textContent = '// re-routing you in ' + left + 's //';
+        const redInt = setInterval(() => {
+            left--;
+            if (left > 0) {
+                noteEl.textContent = '// re-routing you in ' + left + 's //';
+            } else {
+                clearInterval(redInt);
+                noteEl.textContent = '// re-routing… //';
+                // Finale: eye rushes in (slowly then rapidly), message bleeds out.
+                if (contentEl) contentEl.classList.add('eye-approach');
+                if (msgEl) msgEl.classList.add('bleed-out');
+                if (subEl) { subEl.style.transition = 'opacity .9s ease-in'; subEl.style.opacity = '0'; }
+                msgEl.dataset.cleared = '1';  // stop further message corruption
+                // Delay the actual redirect so the fade/approach can play.
+                setTimeout(() => { window.location.href = redirectUrl; }, 1300);
+            }
+        }, 1000);
+    }
+
+    // ---- Live ASCII eye: pupil wanders, eye blinks ----
+    // Builds a character grid every frame and paints it into the <pre>.
+    const eyeEl = document.getElementById('ascii-eye');
+    const EYE_W = 64, EYE_H = 24;
+    const CXR = 31.5, CYR = 11.5; // eye centre (x, y)
+    const RXA = 31.0, RYA = 10.5; // outer sclera semi-axes
+    const IRX = 16.0, IRY = 8.0;  // iris semi-axes
+    const PPR = 3.2;              // pupil radius
+    const RAMP_DIM = [' ', '░', '▒', '▓', '█'];
+    const RAMP_HOT = [' ', '░', '▒', '█', '█'];
+    let pupilX = 0, pupilY = 0;
+    let blink = 0;
+    let blinkT = 0;
+    let nextBlinkAt = 2.5;
+    const t0 = performance.now();
+
+    function inEllipse(px, py, cx, cy, rx, ry) {
+        const dx = (px - cx) / rx, dy = (py - cy) / ry;
+        return dx * dx + dy * dy <= 1.0;
+    }
+
+    function renderEye() {
+        const t = (performance.now() - t0) / 1000;  // real elapsed seconds
+
+        // pupil wander: bold, visible darting inside the iris
+        const wander = 0.8;
+        pupilX = (Math.sin(t * 1.7) * 0.8 + Math.sin(t * 0.31 + 1.7) * 0.5 + Math.sin(t * 3.3) * 0.25) * IRX * wander;
+        pupilY = (Math.cos(t * 2.0) * 0.7 + Math.sin(t * 0.47 + 0.6) * 0.4 + Math.cos(t * 2.9) * 0.25) * IRY * wander;
+
+        // blink: quick close + reopen (lids fully meet at centre)
+        if (t >= nextBlinkAt) { blinkT = 0; nextBlinkAt = t + 2.6 + Math.random() * 3.2; }
+        if (blinkT < 0.30) blinkT += 0.016;
+        let b = Math.max(0, Math.min(1, blinkT / 0.30));
+        b = 1 - Math.abs(1 - 2 * b);
+        blink = b * b * (3 - 2 * b);
+
+        const glitchRow = (Math.random() < 0.02) ? Math.floor(Math.random() * EYE_H) : -1;
+        const spookyOn = maybeStartSpooky();  // computed once per frame
+        const rows = [];
+        for (let y = 0; y < EYE_H; y++) {
+            let line = '';
+            for (let x = 0; x < EYE_W; x++) {
+                const px = x + 0.5, py = y + 0.5;
+
+                if (!inEllipse(px, py, CXR, CYR, RXA, RYA)) { line += ' '; continue; }
+
+                // eyelid closure: lids sweep in from top & bottom, meeting at centre
+                const fromTop = py / EYE_H;         // 0 (top) .. 1 (bottom)
+                const fromBot = (EYE_H - py) / EYE_H;
+                const sweep = blink * 0.62;          // lids each cover up to 62% of height -> overlap
+                const covered = fromTop <= sweep || fromBot <= sweep;
+
+                const inIris = inEllipse(px, py, CXR, CYR, IRX, IRY);
+                const dxP = px - (CXR + pupilX), dyP = py - (CYR + pupilY);
+                const inPupil = dxP * dxP + dyP * dyP <= PPR * PPR;
+                const hx = CXR - IRX * 0.45, hy = CYR - IRY * 0.45;
+                const inSpec = (px - hx) * (px - hx) + (py - hy) * (py - hy) <= 2.1 * 2.1;
+
+                let ch;
+                if (covered) {
+                    ch = '█';  // closed lid
+                } else if (inPupil) {
+                    ch = '█';  // pupil (bright, distinct against iris)
+                } else if (inSpec) {
+                    ch = '░';  // glint
+                } else if (inIris) {
+                    // iris: medium shading (lighter than pupil so the pupil pops)
+                    const rr = Math.hypot(px - CXR, py - CYR) / Math.max(IRX, IRY);
+                    const k = Math.max(0, Math.min(1, 1 - rr));
+                    ch = k > 0.55 ? '▓' : (k > 0.2 ? '▒' : '░');
+                } else {
+                    // sclera: faint fill near the outer edge
+                    const rr = Math.hypot(px - CXR, py - CYR) / Math.max(RXA, RYA);
+                    ch = RAMP_DIM[Math.round(Math.max(0, Math.min(1, (rr - 0.55) / 0.45)) * 3)] || '░';
+                }
+
+                if (y === glitchRow && Math.random() < 0.8) {
+                    ch = '!@#$%&*?'.charAt(Math.floor(Math.random() * 8));
+                }
+                // Spooky corruption burst: sprinkle a few glyphs/emojis, revert next frame.
+                if (spookyOn && Math.random() < 0.012) {
+                    ch = spookyChar();
+                }
+                line += ch;
+            }
+            rows.push(line);
+        }
+        eyeEl.textContent = rows.join('\n');
+        requestAnimationFrame(renderEye);
+    }
+    requestAnimationFrame(renderEye);
+
+    // ---- Matrix rain ----
+    const canvas = document.getElementById('matrix-canvas');
+    const ctx = canvas.getContext('2d');
+    let w, h, cols, drops;
+    const glyphs = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF@#$%&*+=;<>';
+    function sizeCanvas() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        cols = Math.floor(w / 16);
+        drops = new Array(cols).fill(1);
+    }
+    sizeCanvas();
+    window.addEventListener('resize', sizeCanvas);
+    setInterval(() => {
+        ctx.fillStyle = 'rgba(0,0,0,0.06)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#3f0000';
+        ctx.font = '14px monospace';
+        for (let i = 0; i < cols; i++) {
+            const ch = glyphs[Math.floor(Math.random() * glyphs.length)];
+            ctx.fillText(ch, i * 16, drops[i] * 16);
+            if (drops[i] * 16 > h && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        }
+    }, 45);
+})();
+</script>
+{% endblock %}

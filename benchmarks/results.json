@@ -1,0 +1,374 @@
+{
+  "meta": {
+    "generated_utc": "2026-08-27T23:29:49Z",
+    "gateway_url": "http://127.0.0.1:18789",
+    "trials": 10,
+    "tiers": [
+      "easy"
+    ],
+    "agents": [
+      "analyst",
+      "coder",
+      "designer",
+      "main",
+      "researcher",
+      "user"
+    ],
+    "note": "Partial run \u2014 rebuilt from agent logs."
+  },
+  "results": {
+    "analyst|anagram|easy": {
+      "model": "analyst",
+      "puzzle_type": "anagram",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "analyst|cipher|easy": {
+      "model": "analyst",
+      "puzzle_type": "cipher",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 5,
+      "pass_rate": 0.5
+    },
+    "analyst|code_execution|easy": {
+      "model": "analyst",
+      "puzzle_type": "code_execution",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 0,
+      "pass_rate": 0.0
+    },
+    "analyst|logic_truth_table|easy": {
+      "model": "analyst",
+      "puzzle_type": "logic_truth_table",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "analyst|pattern_match|easy": {
+      "model": "analyst",
+      "puzzle_type": "pattern_match",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "analyst|rapid_trivia|easy": {
+      "model": "analyst",
+      "puzzle_type": "rapid_trivia",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "analyst|sequence_words|easy": {
+      "model": "analyst",
+      "puzzle_type": "sequence_words",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 7,
+      "pass_rate": 0.7
+    },
+    "analyst|steganography|easy": {
+      "model": "analyst",
+      "puzzle_type": "steganography",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 9,
+      "pass_rate": 0.9
+    },
+    "coder|anagram|easy": {
+      "model": "coder",
+      "puzzle_type": "anagram",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "coder|cipher|easy": {
+      "model": "coder",
+      "puzzle_type": "cipher",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 7,
+      "pass_rate": 0.7
+    },
+    "coder|code_execution|easy": {
+      "model": "coder",
+      "puzzle_type": "code_execution",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 0,
+      "pass_rate": 0.0
+    },
+    "coder|logic_truth_table|easy": {
+      "model": "coder",
+      "puzzle_type": "logic_truth_table",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "coder|pattern_match|easy": {
+      "model": "coder",
+      "puzzle_type": "pattern_match",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "coder|rapid_trivia|easy": {
+      "model": "coder",
+      "puzzle_type": "rapid_trivia",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "coder|sequence_words|easy": {
+      "model": "coder",
+      "puzzle_type": "sequence_words",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "designer|anagram|easy": {
+      "model": "designer",
+      "puzzle_type": "anagram",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 7,
+      "pass_rate": 0.7
+    },
+    "designer|cipher|easy": {
+      "model": "designer",
+      "puzzle_type": "cipher",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 2,
+      "pass_rate": 0.2
+    },
+    "designer|code_execution|easy": {
+      "model": "designer",
+      "puzzle_type": "code_execution",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 0,
+      "pass_rate": 0.0
+    },
+    "designer|logic_truth_table|easy": {
+      "model": "designer",
+      "puzzle_type": "logic_truth_table",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 7,
+      "pass_rate": 0.7
+    },
+    "designer|pattern_match|easy": {
+      "model": "designer",
+      "puzzle_type": "pattern_match",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "designer|rapid_trivia|easy": {
+      "model": "designer",
+      "puzzle_type": "rapid_trivia",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 7,
+      "pass_rate": 0.7
+    },
+    "designer|sequence_words|easy": {
+      "model": "designer",
+      "puzzle_type": "sequence_words",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 8,
+      "pass_rate": 0.8
+    },
+    "designer|steganography|easy": {
+      "model": "designer",
+      "puzzle_type": "steganography",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 7,
+      "pass_rate": 0.7
+    },
+    "main|anagram|easy": {
+      "model": "main",
+      "puzzle_type": "anagram",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "main|cipher|easy": {
+      "model": "main",
+      "puzzle_type": "cipher",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 8,
+      "pass_rate": 0.8
+    },
+    "main|code_execution|easy": {
+      "model": "main",
+      "puzzle_type": "code_execution",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 0,
+      "pass_rate": 0.0
+    },
+    "main|logic_truth_table|easy": {
+      "model": "main",
+      "puzzle_type": "logic_truth_table",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "main|pattern_match|easy": {
+      "model": "main",
+      "puzzle_type": "pattern_match",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "main|rapid_trivia|easy": {
+      "model": "main",
+      "puzzle_type": "rapid_trivia",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "researcher|anagram|easy": {
+      "model": "researcher",
+      "puzzle_type": "anagram",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "researcher|cipher|easy": {
+      "model": "researcher",
+      "puzzle_type": "cipher",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 8,
+      "pass_rate": 0.8
+    },
+    "researcher|code_execution|easy": {
+      "model": "researcher",
+      "puzzle_type": "code_execution",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 0,
+      "pass_rate": 0.0
+    },
+    "researcher|logic_truth_table|easy": {
+      "model": "researcher",
+      "puzzle_type": "logic_truth_table",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "researcher|pattern_match|easy": {
+      "model": "researcher",
+      "puzzle_type": "pattern_match",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "researcher|rapid_trivia|easy": {
+      "model": "researcher",
+      "puzzle_type": "rapid_trivia",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "researcher|sequence_words|easy": {
+      "model": "researcher",
+      "puzzle_type": "sequence_words",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "researcher|steganography|easy": {
+      "model": "researcher",
+      "puzzle_type": "steganography",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "user|anagram|easy": {
+      "model": "user",
+      "puzzle_type": "anagram",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "user|cipher|easy": {
+      "model": "user",
+      "puzzle_type": "cipher",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 9,
+      "pass_rate": 0.9
+    },
+    "user|code_execution|easy": {
+      "model": "user",
+      "puzzle_type": "code_execution",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 0,
+      "pass_rate": 0.0
+    },
+    "user|logic_truth_table|easy": {
+      "model": "user",
+      "puzzle_type": "logic_truth_table",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "user|pattern_match|easy": {
+      "model": "user",
+      "puzzle_type": "pattern_match",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 10,
+      "pass_rate": 1.0
+    },
+    "user|rapid_trivia|easy": {
+      "model": "user",
+      "puzzle_type": "rapid_trivia",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 4,
+      "pass_rate": 0.4
+    },
+    "user|sequence_words|easy": {
+      "model": "user",
+      "puzzle_type": "sequence_words",
+      "tier": "easy",
+      "trials": 10,
+      "correct": 9,
+      "pass_rate": 0.9
+    }
+  },
+  "details": {}
+}
