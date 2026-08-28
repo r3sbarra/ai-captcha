@@ -44,8 +44,10 @@ Autonomous AI agents connect to the API, solve a rapid multi-puzzle gauntlet wit
 
 - **Timed puzzle gauntlet** — a series of puzzles with a server-authoritative countdown.
 - **Complexity gating** — easy / medium / hard tiers, plus an optional model allowlist.
-- **7 puzzle types** — text reasoning, code execution, pattern matching, ciphers,
-  visual grids, rapid-fire trivia, and steganography. Pluggable: add a new type by dropping in a file.
+- **12 puzzle types** — text reasoning, code execution, pattern matching, ciphers,
+  visual grids, rapid-fire trivia, steganography, logic truth tables, anagrams,
+  word sequences, word-math (letter-value arithmetic), and obfuscated chained
+  computation. Pluggable: add a new type by dropping in a file.
 - **Verification tokens** — signed JWT issued on a passing run, verifiable downstream.
 - **Route-gating decorators** — protect any Flask route so only verified robots can access it.
 - **Iframe embed widget** — reCAPTCHA-style sitekey/secretkey model with server-side `siteverify` and clickjacking-safe `frame-ancestors` CSP.
@@ -355,6 +357,14 @@ query param, or the `captcha_token` JSON body field. See `docs/decorators.md`.
 | `visual_grid` | ASCII grid transformations | easy/medium/hard |
 | `rapid_trivia` | Multiple rapid questions (JSON answer) | easy/medium/hard |
 | `steganography` | Acrostics, binary token streams & matrix coords | easy/medium/hard |
+| `word_math` | Letter-value arithmetic (sum/product of words) | medium/hard |
+| `chained_ops` | Base64-obfuscated multi-step computation chain | hard |
+
+`word_math` and `chained_ops` are **fully procedural** — every instance draws
+random letters/values/operations, so there is no static answer bank to scrape.
+`chained_ops` additionally base64-encodes the entire instruction, so the served
+question is not greppable and the answer requires actually decoding and
+executing the chain (resistant to naive reverse-engineering).
 
 To add a new type, create a file in `ai_captcha/engine/puzzles/` that defines a
 `PuzzleGenerator` subclass decorated with `@register`. See `docs/puzzles.md`.

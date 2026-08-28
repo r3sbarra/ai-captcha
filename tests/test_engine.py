@@ -24,12 +24,15 @@ def test_all_types_present():
     assert "logic_truth_table" in types
     assert "anagram" in types
     assert "sequence_words" in types
+    assert "word_math" in types
+    assert "chained_ops" in types
 
 
-@pytest.mark.parametrize("ptype", ["text_reasoning", "code_execution", "pattern_match", "cipher", "visual_grid", "rapid_trivia", "steganography", "logic_truth_table", "anagram", "sequence_words"])
+@pytest.mark.parametrize("ptype", ["text_reasoning", "code_execution", "pattern_match", "cipher", "visual_grid", "rapid_trivia", "steganography", "logic_truth_table", "anagram", "sequence_words", "word_math", "chained_ops"])
 def test_generate_and_validate(ptype):
     gen = get_generator(ptype)
-    puzzle = gen.generate("easy")
+    tier = gen.supported_tiers[0]
+    puzzle = gen.generate(tier)
     assert puzzle.question
     assert puzzle.answer
     # Correct answer validates.

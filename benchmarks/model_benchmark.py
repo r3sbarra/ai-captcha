@@ -82,6 +82,8 @@ _TYPE_INSTRUCTIONS = {
     "logic_truth_table": "Answer with true or false only.",
     "anagram": "Answer with the unscrambled word only.",
     "sequence_words": "Answer with the next item only.",
+    "word_math": "Answer with the integer result only (digits).",
+    "chained_ops": "Decode the base64, follow the chain, and answer with the final integer only (digits).",
     "are_you_ai": "Answer with a single word.",
 }
 
