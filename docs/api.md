@@ -172,3 +172,122 @@ AppManager standardized health contract.
   "timestamp": "2026-08-27T20:36:26Z"
 }
 ```
+
+---
+
+# Embed (iframe widget) API
+
+The reCAPTCHA-style embed endpoints. Base URL is the same (`/api` standalone,
+`/apps/ai-captcha/api` under AppManager). The admin endpoints require the
+`EMBED_ADMIN_TOKEN` bearer token; the session endpoints are called same-origin
+by the iframe.
+
+## `GET /embed`
+
+Serve the iframe challenge page. Requires `?sitekey=…&origin=…` (and optional
+`?tier=`). The origin must be registered on the site, otherwise the page
+refuses to render and emits no `frame-ancestors` header for that origin.
+
+**Errors**
+
+- `400 invalid_sitekey` — unknown or disabled sitekey.
+- `400 invalid_tier` — tier not in easy/medium/hard.
+- `403 origin_not_allowed` — origin not registered for this sitekey.
+
+## `POST /api/siteverify`
+
+Verify a challenge token. Called by the host **backend** with the secretkey.
+
+**Request (form or JSON)**
+
+```json
+{
+  "secretkey": "YOUR_SECRETKEY",
+  "response": "<token>",
+  "remoteip": "1.2.3.4",
+  "sitekey": "optional-hint"
+}
+```
+
+**Response 200** (reCAPTCHA-shaped)
+
+```json
+{
+  "success": true,
+  "challenge_ts": 1724877386,
+  "hostname": "My Site",
+  "sitekey": "...",
+  "tier": "medium",
+  "error-codes": []
+}
+```
+
+**Errors / failure codes** (`success: false` with `error-codes`)
+
+- `missing-input` — no secretkey or token.
+- `rate-limited` — per-secretkey rate limit hit (`429`).
+- `invalid-secretkey` — unknown or disabled secretkey.
+- `sitekey-mismatch` — token bound to a different sitekey.
+- `invalid-token` — bad signature / expired.
+- `timeout-or-duplicate` — token replayed (single-use `jti` consumed).
+
+## Admin endpoints (require `Authorization: Bearer $EMBED_ADMIN_TOKEN`)
+
+### `POST /api/embed/sites`
+
+Create an embed site. Returns the `sitekey` + `secretkey` (shown once).
+
+**Request**
+
+```json
+{ "name": "My Site", "allowed_origins": ["https://example.com"] }
+```
+
+**Response 201**
+
+```json
+{ "sitekey": "...", "secretkey": "...", "name": "My Site", "allowed_origins": ["https://example.com"] }
+```
+
+### `GET /api/embed/sites`
+
+List all embed sites.
+
+### `DELETE /api/embed/sites/<sitekey>`
+
+Delete a site. **Response 200** `{ "deleted": "<sitekey>" }`.
+
+### `PUT /api/embed/sites/<sitekey>/origins`
+
+Set allowed origins. **Request** `{ "allowed_origins": ["https://example.com"] }`.
+
+### `PUT /api/embed/sites/<sitekey>/enabled`
+
+Enable/disable a site. **Request** `{ "enabled": true }`.
+
+### `POST /api/embed/demo-site`
+
+Create a throwaway demo site (no admin token needed; rate-limited).
+**Request** `{ "origin": "https://example.com" }`.
+
+## Embed session API (same-origin, used by the iframe)
+
+### `POST /api/embed/start`
+
+Start an embed challenge bound to a sitekey.
+
+**Request** `{ "sitekey": "...", "origin": "https://example.com", "tier": "medium" }`
+
+**Response 201** — same shape as `POST /api/start` (session + current puzzle).
+
+### `GET /api/embed/session/<id>`
+
+Current puzzle for an embed session. Pass `?sitekey=` to bind.
+
+### `POST /api/embed/session/<id>/answer`
+
+Submit an answer. **Request** `{ "answer": "...", "sitekey": "..." }`.
+
+### `GET /api/embed/session/<id>/result`
+
+Final result + verification token. Pass `?sitekey=` to bind.

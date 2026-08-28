@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, request
 
 from ..engine.gating import TIER_ORDER
 
@@ -38,6 +38,16 @@ def failed():
 @views_bp.route("/docs")
 def docs():
     return render_template("docs.html")
+
+
+@views_bp.route("/embed-demo")
+def embed_demo():
+    from flask import current_app
+
+    return render_template(
+        "embed_demo.html",
+        base_path=current_app.config.get("APPLICATION_ROOT", "") or request.script_root.rstrip("/"),
+    )
 
 
 @views_bp.route("/benchmark")

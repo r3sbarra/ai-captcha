@@ -12,6 +12,7 @@
         <a href="#quickstart">Quickstart</a>
         <a href="#api">API Reference</a>
         <a href="#embedding">Embedding in Flask</a>
+        <a href="#embed-widget">Embed (iframe widget)</a>
         <a href="#decorators">Route-Gating Decorators</a>
         <a href="#puzzles">Puzzle Types</a>
         <a href="#config">Configuration</a>
@@ -142,7 +143,35 @@ from ai_captcha import blueprint
 app = Flask(__name__)
 app.register_blueprint(blueprint, url_prefix="/captcha")</code></pre>
 
-    <h2 id="decorators"><span class="idx">05 ·</span> Route-Gating Decorators</h2>
+    <h2 id="embed-widget"><span class="idx">05 ·</span> Embed (iframe widget)</h2>
+    <p>For third-party pages, AI CAPTCHA ships a reCAPTCHA-style iframe widget
+    (sitekey/secretkey model). The host frames a challenge widget; on a pass the
+    widget posts a token via <code>postMessage</code>; the host <em>backend</em>
+    confirms it with the secretkey. The pass/fail decision is never trusted client-side.</p>
+    <pre class="code"><code># 1. Create an embed site (admin API, requires EMBED_ADMIN_TOKEN)
+curl -X POST /api/embed/sites \
+  -H "Authorization: Bearer $EMBED_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My Site","allowed_origins":["https://example.com"]}'
+# → { "sitekey": "...", "secretkey": "...", "allowed_origins": [...] }
+
+# 2. Drop the widget into your page
+&lt;div class="ai-captcha" data-sitekey="YOUR_SITEKEY"
+     data-callback="onCaptchaPass" data-error-callback="onCaptchaError">&lt;/div>
+&lt;script src="/static/js/embed.js" async defer>&lt;/script>
+
+# 3. Verify server-side (the security-critical step)
+curl -X POST /api/siteverify \
+  -H "Content-Type: application/json" \
+  -d '{"secretkey":"YOUR_SECRETKEY","response":"&lt;token>"}'
+# → { "success": true, "error-codes": [] }</code></pre>
+    <p>Tokens are single-use (replay-protected), short-lived (120s), and bound to
+    the sitekey. The <code>/embed</code> page emits a dynamic
+    <code>frame-ancestors</code> CSP so only your registered origins can frame it.
+    A live demo is at <code>/embed-demo</code>. See <code>docs/api.md</code> for the
+    full endpoint reference.</p>
+
+    <h2 id="decorators"><span class="idx">06 ·</span> Route-Gating Decorators</h2>
     <p>Protect any route so only verified robots can access it:</p>
     <pre class="code"><code>from ai_captcha.decorators import ai_captcha_required, tier_gate
 
@@ -159,7 +188,7 @@ def secret():
 payload = verify_token(token, secret="your-token-secret")
 # payload: {"session_id", "tier", "model", "solved", "total", "iat", "exp", "iss"}</code></pre>
 
-    <h2 id="puzzles"><span class="idx">06 ·</span> Puzzle Types</h2>
+    <h2 id="puzzles"><span class="idx">07 ·</span> Puzzle Types</h2>
     <table>
         <tr><th>Type</th><th>What it does</th></tr>
         <tr><td><code>text_reasoning</code></td><td>Riddles, logic, word math</td></tr>
@@ -174,7 +203,7 @@ payload = verify_token(token, secret="your-token-secret")
     <code>@register</code> into <code>ai_captcha/engine/puzzles/</code>. The registry
     auto-discovers it on startup.</p>
 
-    <h2 id="config"><span class="idx">06 ·</span> Configuration</h2>
+    <h2 id="config"><span class="idx">08 ·</span> Configuration</h2>
     <p>All settings are overridable via environment variables or <code>app.config</code> keys.</p>
     <table>
         <tr><th>Env var</th><th>Config key</th><th>Default</th><th>Purpose</th></tr>
@@ -190,7 +219,7 @@ payload = verify_token(token, secret="your-token-secret")
     <p><strong>Model allowlist</strong> uses prefix matching: <code>gpt-4</code> matches
     <code>gpt-4</code>, <code>gpt-4o</code>, <code>gpt-4-turbo</code>, etc. Empty list = all models allowed.</p>
 
-    <h2 id="appmanager"><span class="idx">07 ·</span> AppManager Plugin</h2>
+    <h2 id="appmanager"><span class="idx">09 ·</span> AppManager Plugin</h2>
     <p>AI CAPTCHA runs as a sub-app under AppManager, served at <code>/apps/ai-captcha/</code>.</p>
     <pre class="code"><code># 1. Symlink into installed_apps/
 ln -s /path/to/ai-captcha /path/to/appmanager/installed_apps/ai-captcha

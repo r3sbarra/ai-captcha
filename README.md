@@ -11,11 +11,12 @@ a timed series of puzzles that are trivial for a capable language model but
 practically impossible for a human to solve within the time limit. Passing the
 challenge issues a signed **"verified robot"** token.
 
-Runs three ways:
+Runs four ways:
 
 1. **Standalone** — its own Flask server.
 2. **AppManager plugin** — symlinked into `installed_apps/` and served at `/apps/ai-captcha/`.
 3. **Embedded** — dropped into any existing Flask project via `init_app()` or a Blueprint.
+4. **Iframe widget** — a reCAPTCHA-style drop-in for any third-party page (sitekey/secretkey + server-side `siteverify`).
 
 ---
 
@@ -37,6 +38,7 @@ Autonomous AI agents connect to the API, solve a rapid multi-puzzle gauntlet wit
   visual grids, rapid-fire trivia, and steganography. Pluggable: add a new type by dropping in a file.
 - **Verification tokens** — signed JWT issued on a passing run, verifiable downstream.
 - **Route-gating decorators** — protect any Flask route so only verified robots can access it.
+- **Iframe embed widget** — reCAPTCHA-style sitekey/secretkey model with server-side `siteverify` and clickjacking-safe `frame-ancestors` CSP.
 - **Secret Agent Whisper Protocol** — hidden handshake and discovery endpoints for exploratory agents.
 - **Pip-installable** — `pip install ai-captcha-uwu`.
 
@@ -109,6 +111,9 @@ All settings are overridable via environment variables or `app.config` keys.
 | `AIC_RATE_LIMIT_START_PER_MIN` | `RATE_LIMIT_START_PER_MIN` | `30` | `/api/start` limit per client/min (`0` = off) |
 | `AIC_RATE_LIMIT_ANSWER_PER_MIN` | `RATE_LIMIT_ANSWER_PER_MIN` | `120` | `/api/.../answer` limit per client/min |
 | `AIC_RATE_LIMIT_GLOBAL_PER_MIN` | `RATE_LIMIT_GLOBAL_PER_MIN` | `0` | Global API limit per client/min (`0` = off) |
+| `AIC_RATE_LIMIT_VERIFY_PER_MIN` | `RATE_LIMIT_VERIFY_PER_MIN` | `60` | Per-secretkey limit on `/api/siteverify` (blunts brute force) |
+| `AIC_MAX_ANSWER_LENGTH` | `MAX_ANSWER_LENGTH` | `10000` | Max answer length (defense vs oversized payloads) |
+| `AIC_EMBED_ADMIN_TOKEN` | `EMBED_ADMIN_TOKEN` | `""` | Bearer token for the embed site admin API (empty = admin disabled) |
 | `AIC_SECURITY_HEADERS` | `SECURITY_HEADERS` | `true` | Emit CSP, nosniff, X-Frame-Options, etc. |
 | — | `TRUST_PROXY_HEADERS` / `TRUSTED_PROXY_IP` | `false` / — | Honor `X-Forwarded-For` only from a trusted proxy |
 | — | `TIMER_SECONDS_EASY/MEDIUM/HARD` | 30/20/10 | Per-tier total timers |
@@ -206,6 +211,64 @@ app.register_blueprint(blueprint, url_prefix="/captcha")
 ```
 
 See `docs/embedding.md` for full details.
+
+---
+
+## Embed (iframe widget) — reCAPTCHA-style
+
+AI CAPTCHA also ships a **drop-in iframe widget** for third-party pages, modeled
+on the reCAPTCHA sitekey/secretkey architecture. A host page frames a challenge
+widget; on a pass the widget posts a token to the host via `postMessage`; the
+host **backend** then confirms it with the secretkey. The pass/fail decision is
+**never** trusted client-side.
+
+### 1. Create an embed site (admin)
+
+```bash
+# Admin API — requires the EMBED_ADMIN_TOKEN bearer token
+curl -X POST http://localhost:5100/api/embed/sites \
+  -H "Authorization: Bearer $EMBED_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My Site","allowed_origins":["https://example.com"]}'
+
+# → 201 { "sitekey": "...", "secretkey": "...", "allowed_origins": [...] }
+```
+
+The `secretkey` is shown **once** — store it server-side. The `sitekey` is
+public and goes in your page.
+
+### 2. Drop the widget into your page
+
+```html
+<div class="ai-captcha" data-sitekey="YOUR_SITEKEY"
+     data-callback="onCaptchaPass" data-error-callback="onCaptchaError"></div>
+<script src="https://YOUR_HOST/apps/ai-captcha/static/js/embed.js" async defer></script>
+```
+
+`embed.js` creates the iframe (`GET /embed?sitekey=…&origin=…`), listens for
+`postMessage` (strict origin + source checks), and on a pass stores the token in
+a hidden `ai-captcha-response` input and calls your `data-callback` with it.
+
+### 3. Verify server-side (the security-critical step)
+
+Your **backend** calls `POST /api/siteverify` with the secretkey + token. Never
+grant access based on the client-side token alone.
+
+```bash
+curl -X POST http://localhost:5100/api/siteverify \
+  -H "Content-Type: application/json" \
+  -d '{"secretkey":"YOUR_SECRETKEY","response":"<token>","remoteip":"1.2.3.4"}'
+
+# → 200 { "success": true, "challenge_ts": ..., "hostname": ..., "error-codes": [] }
+```
+
+Tokens are single-use (replay-protected), short-lived (120s), and bound to the
+sitekey. The `/embed` page emits a dynamic `frame-ancestors` CSP so only your
+registered origins can frame it (clickjacking defense).
+
+A live demo is served at `/embed-demo` (or the AppManager URL
+`/apps/ai-captcha/embed-demo`). See `docs/embedding.md` and `docs/api.md` for
+the full endpoint reference.
 
 ---
 
