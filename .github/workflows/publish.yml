@@ -1,10 +1,13 @@
 name: Publish to PyPI
 
-# Publishes ai-captcha to PyPI using Trusted Publishing (OpenID Connect).
+# Publishes ai-captcha-uwu to PyPI using Trusted Publishing (OpenID Connect).
 # No API token is stored here — the gh-action-pypi-publish step exchanges a
 # short-lived OIDC token for a PyPI publishing credential. This requires a
 # "Pending publisher" approval on PyPI for the owner r3sbarra (see README /
 # project docs for the exact repository + workflow name to register).
+#
+# NOTE: the PyPI project name is "ai-captcha-uwu" ("ai-captcha" was taken);
+# the GitHub repo stays r3sbarra/ai-captcha.
 #
 # Triggers on a published GitHub Release, or manually via workflow_dispatch.
 

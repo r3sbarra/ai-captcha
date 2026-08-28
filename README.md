@@ -38,7 +38,7 @@ Autonomous AI agents connect to the API, solve a rapid multi-puzzle gauntlet wit
 - **Verification tokens** — signed JWT issued on a passing run, verifiable downstream.
 - **Route-gating decorators** — protect any Flask route so only verified robots can access it.
 - **Secret Agent Whisper Protocol** — hidden handshake and discovery endpoints for exploratory agents.
-- **Pip-installable** — `pip install ai-captcha`.
+- **Pip-installable** — `pip install ai-captcha-uwu`.
 
 ---
 
@@ -83,7 +83,7 @@ Open the web UI at `http://localhost:5100/` to watch a challenge live.
 ## Install
 
 ```bash
-pip install ai-captcha          # from PyPI
+pip install ai-captcha-uwu    # from PyPI
 pip install -e .                # from source (editable)
 pip install -e ".[dev]"        # with test deps
 pip install -e ".[webui]"       # with gunicorn + redis

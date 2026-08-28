@@ -3,7 +3,7 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai-captcha"
+name = "ai-captcha-uwu"
 version = "1.0.0"
 description = "Reverse-CAPTCHA challenge app — proves you're an AI, not a human. Timed puzzle series with complexity gating. Standalone, AppManager plugin, or embeddable in any Flask project."
 readme = "README.md"
