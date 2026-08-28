@@ -42,6 +42,10 @@ instance/
 .idea/
 .vscode/
 
+# Node (scripts/ JS build tooling)
+node_modules/
+scripts/node_modules/
+
 # Environment / secrets — never commit real secrets
 .env
 .env.*

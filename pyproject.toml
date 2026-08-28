@@ -30,6 +30,7 @@ dependencies = [
     "flask>=3.0",
     "flask-sqlalchemy>=3.1",
     "pyjwt>=2.8",
+    "appmanager-sdk>=0.1.0",
 ]
 
 [project.optional-dependencies]
@@ -48,9 +49,9 @@ ai-captcha = "ai_captcha.app:run_standalone"
 ai-captcha-init = "ai_captcha.cli:init_db"
 
 [project.urls]
-Homepage = "https://github.com/richard/ai-captcha"
-Repository = "https://github.com/richard/ai-captcha"
-Issues = "https://github.com/richard/ai-captcha/issues"
+Homepage = "https://github.com/r3sbarra/ai-captcha"
+Repository = "https://github.com/r3sbarra/ai-captcha"
+Issues = "https://github.com/r3sbarra/ai-captcha/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

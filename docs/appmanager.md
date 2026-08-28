@@ -77,6 +77,23 @@ The app is now served at `http://<host>:5000/apps/ai-captcha/`.
 
 ## manifest.json
 
+The manifest is **generated from Python** using the `appmanager-sdk`, not hand-
+written. The source of truth is `ai_captcha/manifest.py`, which declares an
+`AppManifest` (name, slug, version, settings, scheduled tasks) using the SDK's
+type-safe dataclasses. Regenerate `manifest.json` with either:
+
+```bash
+# Via the AppManager Flask extension (registered by create_app/init_app):
+flask --app ai_captcha.app manifest generate
+
+# Or directly via the SDK CLI:
+appmanager-sdk generate ai_captcha.manifest:manifest
+```
+
+Both produce an identical, validated `manifest.json`. Secret settings (e.g.
+`token_secret`, `embed_admin_token`) are redacted on export so real values never
+land in the file. The generated manifest includes the scheduled cleanup task:
+
 ```json
 {
   "name": "AI CAPTCHA",
@@ -90,6 +107,20 @@ The app is now served at `http://<host>:5000/apps/ai-captcha/`.
   ]
 }
 ```
+
+## AppManager SDK integration
+
+AI CAPTCHA uses the `appmanager-sdk` for its AppManager integration:
+
+- **Manifest** — declared in `ai_captcha/manifest.py` via `AppManifest`.
+- **Flask extension** — `create_app`/`init_app` attach the SDK's `AppManager`
+  extension, which binds the manifest + client to the app, registers the
+  `flask manifest generate` CLI command, and adds a health endpoint.
+- **Client** — the SDK's `AppManagerClient` is available for header-based user
+  resolution and telemetry when running under an AppManager gateway.
+
+The integration is **optional**: if `appmanager-sdk` is not installed, the app
+still runs standalone or embedded (the extension import is guarded).
 
 ---
 

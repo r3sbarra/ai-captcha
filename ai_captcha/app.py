@@ -18,7 +18,9 @@ from flask import Flask
 
 from .config import Config
 from .database import init_db
+from .manifest import manifest as appmanager_manifest
 from .routes.api import api_bp
+from .routes.embed import embed_bp
 from .routes.health import health_bp
 from .routes.seo import seo_bp
 from .routes.views import views_bp
@@ -26,12 +28,36 @@ from .utils.cache import get_cache
 from .utils.logging import get_logger
 from .utils.security import apply_security_headers, check_secrets
 
+# AppManager SDK Flask extension. Binds the manifest + client to the app and
+# registers a ``flask manifest generate`` CLI command. Imported lazily so the
+# package still works if appmanager-sdk is not installed (standalone/embedded).
+try:
+    from appmanager_sdk.flask import AppManager as _AppManager
+except ImportError:  # pragma: no cover - appmanager-sdk optional
+    _AppManager = None
+
 # A single Blueprint that bundles all AI CAPTCHA routes. Register it on any
 # Flask app to embed the challenge system under a URL prefix of your choice.
 blueprint = views_bp
 blueprint.register_blueprint(api_bp, url_prefix="/api")
+blueprint.register_blueprint(embed_bp)
 blueprint.register_blueprint(health_bp)
 blueprint.register_blueprint(seo_bp)
+
+
+def _register_appmanager(app: Flask) -> None:
+    """Attach the AppManager SDK manifest + client to ``app`` (if available).
+
+    Registers the ``flask manifest generate`` CLI command and a health endpoint
+    (only if the app doesn't already define one). No-op when appmanager-sdk is
+    not installed, so standalone/embedded use is unaffected.
+    """
+    if _AppManager is None:
+        return
+    # The SDK's AppManager extension binds the manifest and client. We pass the
+    # manifest explicitly so ``flask manifest generate`` and the generator can
+    # discover it from the app object.
+    _AppManager(app, manifest=appmanager_manifest)
 
 
 def create_app(config: dict[str, Any] | None = None) -> Flask:
@@ -50,6 +76,7 @@ def create_app(config: dict[str, Any] | None = None) -> Flask:
     app.register_blueprint(blueprint)
     _register_context(app)
     _register_security_headers(app)
+    _register_appmanager(app)
     return app
 
 
@@ -106,6 +133,7 @@ def init_app(app: Flask, config: dict[str, Any] | None = None) -> Flask:
     app.register_blueprint(blueprint)
     _register_context(app)
     _register_security_headers(app)
+    _register_appmanager(app)
     return app
 
 

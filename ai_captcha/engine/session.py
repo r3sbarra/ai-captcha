@@ -46,6 +46,7 @@ class SessionManager:
         model_name: str | None = None,
         client_id: str | None = None,
         allowlist: list[str] | None = None,
+        sitekey: str | None = None,
     ) -> ChallengeSession:
         config = get_tier_config(tier)
         if model_name and not check_model_allowed(model_name, allowlist):
@@ -56,6 +57,7 @@ class SessionManager:
             tier=tier,
             model_name=model_name,
             client_id=client_id,
+            sitekey=sitekey,
             # +1 reserves the final slot for the fixed "Are you AI?" puzzle.
             total_puzzles=config.puzzles_per_session + 1,
             time_limit_total=config.timer_seconds,
@@ -239,6 +241,7 @@ class SessionManager:
                 "model": session.model_name,
                 "solved": session.puzzles_solved,
                 "total": session.total_puzzles,
+                "sitekey": session.sitekey,
             },
             secret=secret,
             ttl_hours=ttl,

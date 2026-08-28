@@ -37,6 +37,9 @@ class ChallengeSession(db.Model):
 
     model_name = db.Column(db.String(100), nullable=True)  # AI model identifier
     client_id = db.Column(db.String(255), nullable=True)  # IP or agent identifier
+    # When created via the embeddable (iframe) flow, the sitekey this session is
+    # bound to. Used to prevent cross-sitekey token/session laundering.
+    sitekey = db.Column(db.String(64), nullable=True)
 
     total_puzzles = db.Column(db.Integer, default=5)
     puzzles_solved = db.Column(db.Integer, default=0)
@@ -76,6 +79,44 @@ class ChallengeSession(db.Model):
             "time_limit_total": self.time_limit_total,
             "started_at": to_utc_iso(self.started_at),
             "completed_at": to_utc_iso(self.completed_at),
+        }
+
+
+class EmbedSite(db.Model):
+    """A registered embeddable (iframe) CAPTCHA site.
+
+    Mirrors the reCAPTCHA model: a ``sitekey`` (public, used by the iframe) and a
+    ``secretkey`` (private, used by the host backend to verify tokens). Only the
+    SHA-256 hash of the secretkey is stored; the raw value is shown once at
+    creation. ``allowed_origins`` controls which origins may frame the challenge
+    (clickjacking defense via a dynamic ``frame-ancestors`` CSP).
+    """
+
+    __tablename__ = "embed_sites"
+
+    sitekey = db.Column(db.String(64), primary_key=True)
+    secretkey_hash = db.Column(db.String(64), nullable=False, unique=True)
+    name = db.Column(db.String(200), nullable=True)
+    enabled = db.Column(db.Boolean, default=True, nullable=False)
+    allowed_origins = db.Column(db.Text, nullable=False, default="")  # newline-separated
+    created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
+
+    def set_origins(self, origins: list[str]) -> None:
+        """Store the allowed origins as a newline-separated list."""
+        self.allowed_origins = "\n".join(origins)
+
+    def origins(self) -> list[str]:
+        """Return the allowed origins as a list."""
+        return [o for o in (self.allowed_origins or "").split("\n") if o]
+
+    def to_dict(self) -> dict:
+        """Public view — never exposes the secretkey or its hash."""
+        return {
+            "sitekey": self.sitekey,
+            "name": self.name,
+            "enabled": self.enabled,
+            "allowed_origins": self.origins(),
+            "created_at": to_utc_iso(self.created_at),
         }
 
 

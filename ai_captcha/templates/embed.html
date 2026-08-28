@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI CAPTCHA</title>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #30363d;
+    --text: #e6edf3; --dim: #8b949e; --accent: #58a6ff;
+    --ok: #3fb950; --bad: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px; line-height: 1.5;
+  }
+  .wrap { padding: 12px; }
+  .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress { color: var(--dim); font-size: 12px; }
+  .timer { color: var(--accent); font-weight: 700; }
+  .timer.warn { color: var(--bad); }
+  .q {
+    background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px; white-space: pre-wrap; word-break: break-word; margin-bottom: 10px;
+    min-height: 40px;
+  }
+  textarea {
+    width: 100%; background: var(--card); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+    font: inherit; resize: vertical; min-height: 48px;
+  }
+  button {
+    width: 100%; margin-top: 8px; padding: 8px; border: none; border-radius: 6px;
+    background: var(--accent); color: #0d1117; font-weight: 700; cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .fb { margin-top: 8px; font-size: 12px; min-height: 16px; }
+  .fb.ok { color: var(--ok); } .fb.bad { color: var(--bad); }
+  .done { text-align: center; padding: 20px 0; }
+  .done .big { font-size: 18px; margin-bottom: 6px; }
+  .done .sub { color: var(--dim); font-size: 12px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <span class="progress" id="progress">Puzzle <span id="pnum">1</span>/<span id="ptotal">6</span></span>
+    <span class="timer" id="timer">--s</span>
+  </div>
+  <div class="q" id="question">Loading…</div>
+  <textarea id="answer" rows="2" placeholder="Type your answer here" autocomplete="off"></textarea>
+  <button id="submit" type="button">Submit Answer</button>
+  <div class="fb" id="fb"></div>
+
+  <div class="done hidden" id="done">
+    <div class="big" id="doneTitle">✅ Verified</div>
+    <div class="sub" id="doneSub"></div>
+  </div>
+</div>
+
+<script>
+// Embed widget logic. Talks to the same-origin embed API and posts results to
+// the host via postMessage. The host must verify the token server-side.
+(function () {
+  var BASE = {{ base_path|tojson }};
+  var SITEKEY = {{ sitekey|tojson }};
+  var ORIGIN = {{ origin|tojson }};
+  var TIER = {{ tier|tojson }};
+
+  var sessionId = null;
+  var totalPuzzles = 6;
+  var timerId = null;
+  var deadline = 0;
+
+  var el = {
+    progress: document.getElementById('progress'),
+    pnum: document.getElementById('pnum'),
+    ptotal: document.getElementById('ptotal'),
+    timer: document.getElementById('timer'),
+    question: document.getElementById('question'),
+    answer: document.getElementById('answer'),
+    submit: document.getElementById('submit'),
+    fb: document.getElementById('fb'),
+    done: document.getElementById('done'),
+    doneTitle: document.getElementById('doneTitle'),
+    doneSub: document.getElementById('doneSub')
+  };
+
+  function post(type, extra) {
+    var msg = { source: 'ai-captcha', version: 1, type: type };
+    if (extra) for (var k in extra) msg[k] = extra[k];
+    try { parent.postMessage(msg, ORIGIN); } catch (e) {}
+  }
+
+  function setFb(text, cls) {
+    el.fb.textContent = text;
+    el.fb.className = 'fb' + (cls ? ' ' + cls : '');
+  }
+
+  function startTimer(seconds) {
+    deadline = Date.now() + seconds * 1000;
+    clearInterval(timerId);
+    timerId = setInterval(tick, 250);
+    tick();
+  }
+
+  function tick() {
+    var left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    el.timer.textContent = left + 's';
+    el.timer.className = 'timer' + (left <= 5 ? ' warn' : '');
+    if (left <= 0) {
+      clearInterval(timerId);
+      // Timeout → fail the session.
+      fail('timeout');
+    }
+  }
+
+  function showPuzzle(p) {
+    if (!p) return;
+    el.question.textContent = p.question;
+    el.answer.value = '';
+    el.answer.disabled = false;
+    el.submit.disabled = false;
+    el.pnum.textContent = (p.puzzle_index + 1);
+    startTimer(p.time_limit || 30);
+    el.answer.focus();
+  }
+
+  function start() {
+    fetch(BASE + '/api/embed/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sitekey: SITEKEY, origin: ORIGIN, tier: TIER })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.error) { fail('error'); return; }
+      sessionId = d.session_id;
+      totalPuzzles = d.total_puzzles;
+      el.ptotal.textContent = totalPuzzles;
+      showPuzzle(d.current_puzzle);
+      post('ready');
+    }).catch(function () { fail('error'); });
+  }
+
+  function submit() {
+    var answer = el.answer.value.trim();
+    if (!answer || !sessionId) return;
+    el.submit.disabled = true;
+    fetch(BASE + '/api/embed/session/' + sessionId + '/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer: answer, sitekey: SITEKEY })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (d.status === 'expired') { fail('timeout'); return; }
+      if (d.session_status === 'active') {
+        setFb(d.correct ? '✓ Correct' : '✗ Wrong', d.correct ? 'ok' : 'bad');
+        showPuzzle(d.next_puzzle);
+      } else {
+        // completed or failed
+        finish(d.session_status);
+      }
+    }).catch(function () {
+      el.submit.disabled = false;
+      setFb('Network error — retry', 'bad');
+    });
+  }
+
+  function finish(status) {
+    clearInterval(timerId);
+    fetch(BASE + '/api/embed/session/' + sessionId + '/result?sitekey=' + encodeURIComponent(SITEKEY))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.passed && d.verification_token) {
+          el.doneTitle.textContent = '✅ Verified';
+          el.doneSub.textContent = 'Challenge passed.';
+          el.done.classList.remove('hidden');
+          el.question.classList.add('hidden');
+          el.answer.classList.add('hidden');
+          el.submit.classList.add('hidden');
+          post('pass', { token: d.verification_token });
+        } else {
+          fail('failed');
+        }
+      })
+      .catch(function () { fail('error'); });
+  }
+
+  function fail(reason) {
+    clearInterval(timerId);
+    el.doneTitle.textContent = '✗ Not verified';
+    el.doneSub.textContent = 'Challenge ' + reason + '.';
+    el.done.classList.remove('hidden');
+    el.question.classList.add('hidden');
+    el.answer.classList.add('hidden');
+    el.submit.classList.add('hidden');
+    post('fail', { reason: reason });
+  }
+
+  el.submit.addEventListener('click', submit);
+  el.answer.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>

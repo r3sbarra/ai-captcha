@@ -2,9 +2,138 @@
   "name": "AI CAPTCHA",
   "slug": "ai-captcha",
   "version": "1.0.0",
-  "description": "Reverse-CAPTCHA challenge app — proves you're an AI, not a human. Timed puzzle series with complexity gating. Standalone, AppManager plugin, or embeddable in any Flask project.",
+  "description": "Reverse-CAPTCHA challenge app \u2014 proves you're an AI, not a human. Timed puzzle series with complexity gating. Standalone, AppManager plugin, or embeddable in any Flask project.",
+  "author": "Richard",
   "entry_point": "app:app",
   "health_check_path": "/health",
+  "app_type": "standalone",
+  "has_web_ui": true,
+  "requires_auth": true,
+  "settings": {
+    "token_secret": {
+      "type": "string",
+      "default": "***REDACTED***",
+      "description": "Secret used to sign verification tokens (>= 32 chars in production)."
+    },
+    "default_tier": {
+      "type": "string",
+      "default": "medium",
+      "description": "easy | medium | hard"
+    },
+    "puzzles_per_session": {
+      "type": "integer",
+      "default": 5,
+      "description": "Number of puzzles in a challenge session."
+    },
+    "min_pass_rate": {
+      "type": "float",
+      "default": 0.8,
+      "description": "Fraction of puzzles that must be correct to pass."
+    },
+    "rate_limit_start_per_min": {
+      "type": "integer",
+      "default": 30,
+      "description": "Per-client limit on challenge-start requests."
+    },
+    "rate_limit_answer_per_min": {
+      "type": "integer",
+      "default": 120,
+      "description": "Per-client limit on answer submissions."
+    },
+    "token_replay_protection": {
+      "type": "boolean",
+      "default": true,
+      "description": "Reject replayed verification tokens (single-use)."
+    },
+    "security_headers": {
+      "type": "boolean",
+      "default": true,
+      "description": "Apply baseline security headers to every response."
+    },
+    "embed_admin_token": {
+      "type": "string",
+      "default": "***REDACTED***",
+      "description": "Bearer token for the embed site admin API. Empty disables admin."
+    }
+  },
+  "settings_schema": [
+    {
+      "key": "token_secret",
+      "type": "string",
+      "label": "Token Signing Secret",
+      "default": "***REDACTED***",
+      "description": "Secret used to sign verification tokens (>= 32 chars in production).",
+      "is_secret": true
+    },
+    {
+      "key": "default_tier",
+      "type": "string",
+      "label": "Default Difficulty Tier",
+      "default": "medium",
+      "description": "easy | medium | hard",
+      "is_secret": false
+    },
+    {
+      "key": "puzzles_per_session",
+      "type": "integer",
+      "label": "Puzzles per Session",
+      "default": 5,
+      "description": "Number of puzzles in a challenge session.",
+      "is_secret": false
+    },
+    {
+      "key": "min_pass_rate",
+      "type": "float",
+      "label": "Minimum Pass Rate",
+      "default": 0.8,
+      "description": "Fraction of puzzles that must be correct to pass.",
+      "is_secret": false
+    },
+    {
+      "key": "rate_limit_start_per_min",
+      "type": "integer",
+      "label": "Start Rate Limit (per min)",
+      "default": 30,
+      "description": "Per-client limit on challenge-start requests.",
+      "is_secret": false
+    },
+    {
+      "key": "rate_limit_answer_per_min",
+      "type": "integer",
+      "label": "Answer Rate Limit (per min)",
+      "default": 120,
+      "description": "Per-client limit on answer submissions.",
+      "is_secret": false
+    },
+    {
+      "key": "token_replay_protection",
+      "type": "boolean",
+      "label": "Token Replay Protection",
+      "default": true,
+      "description": "Reject replayed verification tokens (single-use).",
+      "is_secret": false
+    },
+    {
+      "key": "security_headers",
+      "type": "boolean",
+      "label": "Security Headers",
+      "default": true,
+      "description": "Apply baseline security headers to every response.",
+      "is_secret": false
+    },
+    {
+      "key": "embed_admin_token",
+      "type": "string",
+      "label": "Embed Admin Token",
+      "default": "***REDACTED***",
+      "description": "Bearer token for the embed site admin API. Empty disables admin.",
+      "is_secret": true
+    }
+  ],
+  "admin_sections": [],
+  "ui_slots": [
+    "dashboard_widget"
+  ],
   "scheduled_tasks": [
     {
       "name": "cleanup_expired_sessions",

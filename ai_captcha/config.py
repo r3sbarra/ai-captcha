@@ -66,6 +66,14 @@ class Config:
     RATE_LIMIT_START_PER_MIN: int = int(os.getenv("AIC_RATE_LIMIT_START_PER_MIN", "30"))
     RATE_LIMIT_ANSWER_PER_MIN: int = int(os.getenv("AIC_RATE_LIMIT_ANSWER_PER_MIN", "120"))
     RATE_LIMIT_GLOBAL_PER_MIN: int = int(os.getenv("AIC_RATE_LIMIT_GLOBAL_PER_MIN", "0"))  # 0=off
+    # Per-secretkey limit on /api/siteverify calls (blunts brute force).
+    RATE_LIMIT_VERIFY_PER_MIN: int = int(os.getenv("AIC_RATE_LIMIT_VERIFY_PER_MIN", "60"))
+
+    # --- Embeddable (iframe) CAPTCHA ---
+    # Max length of an answer submission (defense against oversized payloads).
+    MAX_ANSWER_LENGTH: int = int(os.getenv("AIC_MAX_ANSWER_LENGTH", "10000"))
+    # Bearer token for the embed site admin API. Empty = admin disabled (fail closed).
+    EMBED_ADMIN_TOKEN: str = os.getenv("AIC_EMBED_ADMIN_TOKEN", "")
 
     # --- Replay protection ---
     # When enabled, each issued token gets a unique ``jti`` and consumed jtis

@@ -1,0 +1,9 @@
+/* Vendored JetBrains Mono (variable font, latin subset) — no external requests.
+   Single woff2 contains weights 400/500/700. Served locally from /static/fonts/. */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('../fonts/jetbrains-mono-latin.woff2') format('woff2');
+}

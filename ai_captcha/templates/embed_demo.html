@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}AI CAPTCHA — Embed Demo{% endblock %}
+{% block og_title %}AI CAPTCHA — Embed Demo{% endblock %}
+{% block content %}
+
+<div class="docs">
+    <h1>Embed Demo</h1>
+    <p style="color:var(--text-dim);margin-top:-.5rem">
+        A live, working example of the <strong>iframe embed</strong>. This page
+        creates a throwaway embed site, frames the challenge widget, and shows
+        the <code>postMessage</code> events + a real <code>/api/siteverify</code> call.
+    </p>
+
+    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.2rem; margin: 1.5rem 0;">
+        <div class="card" style="padding: 1.2rem;">
+            <h3>🧩 The Widget (iframe)</h3>
+            <p style="color:var(--text-dim);font-size:.85rem;margin:0 0 .8rem;">
+                This is the actual <code>&lt;iframe&gt;</code> served by
+                <code>GET /embed?sitekey=…&amp;origin=…</code>. Solve the puzzles
+                to earn a token.
+            </p>
+            <div id="widget-slot" style="border:1px solid var(--border-2);border-radius:8px;overflow:hidden;background:#0d1117;">
+                <div id="widget-loading" style="padding:2rem;text-align:center;color:var(--text-dim);font-size:.85rem;">
+                    Creating embed site &amp; loading widget…
+                </div>
+            </div>
+            <p style="color:var(--text-dim);font-size:.75rem;margin:.8rem 0 0;">
+                Sitekey: <code id="demo-sitekey" style="color:var(--accent)">—</code>
+            </p>
+        </div>
+
+        <div class="card" style="padding: 1.2rem;">
+            <h3>📡 postMessage Events</h3>
+            <p style="color:var(--text-dim);font-size:.85rem;margin:0 0 .8rem;">
+                The iframe posts these to the host. The host must check
+                <code>event.origin</code> + <code>event.source</code> and verify the
+                token server-side.
+            </p>
+            <pre class="code" id="event-log" style="max-height:220px;overflow:auto;font-size:.75rem;margin:0;">(waiting for events…)</pre>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 1.2rem; margin-bottom: 1.2rem;">
+        <h3>🔐 Server-side Verification (<code>POST /api/siteverify</code>)</h3>
+        <p style="color:var(--text-dim);font-size:.85rem;margin:0 0 .8rem;">
+            The security-critical step: the host <em>backend</em> calls
+            <code>/api/siteverify</code> with the secretkey + token. A forged or
+            replayed token is rejected. This demo calls it from the browser so you
+            can see the response — in production the secretkey never leaves your server.
+        </p>
+        <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="verify-btn" disabled>Verify token</button>
+            <span id="verify-status" style="font-size:.85rem;color:var(--text-dim)">No token yet — solve the widget first.</span>
+        </div>
+        <pre class="code" id="verify-result" style="margin-top:.8rem;font-size:.75rem;display:none;"></pre>
+    </div>
+
+    <div class="card" style="padding: 1.2rem;">
+        <h3>📋 Copy-paste embed snippet</h3>
+        <p style="color:var(--text-dim);font-size:.85rem;margin:0 0 .8rem;">
+            Use this on any site (replace <code>YOUR_SITEKEY</code> with a real one
+            from <code>POST /api/embed/sites</code>).
+        </p>
+        <pre class="code" id="snippet" style="font-size:.75rem;margin:0;"></pre>
+    </div>
+</div>
+
+<script>
+(function () {
+    var BASE = {{ base_path|tojson }};
+    var ORIGIN = window.location.origin;
+    var sitekey = null;
+    var secretkey = null;
+    var token = null;
+
+    var logEl = document.getElementById('event-log');
+    var verifyBtn = document.getElementById('verify-btn');
+    var verifyStatus = document.getElementById('verify-status');
+    var verifyResult = document.getElementById('verify-result');
+
+    function log(msg) {
+        var line = document.createElement('div');
+        line.textContent = msg;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function setSnippet() {
+        var s = '<div class="ai-captcha" data-sitekey="' + sitekey + '"\n' +
+                '     data-callback="onCaptchaPass" data-error-callback="onCaptchaError"></div>\n' +
+                '<script src="' + BASE + '/static/js/embed.js" async defer><\/script>';
+        document.getElementById('snippet').textContent = s;
+    }
+
+    // Create a throwaway embed site for this demo (server-side, no admin token).
+    fetch(BASE + '/api/embed/demo-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ origin: ORIGIN })
+    }).then(function (r) { return r.json(); }).then(function (d) {
+        sitekey = d.sitekey;
+        secretkey = d.secretkey; // demo only — never expose in production
+        document.getElementById('demo-sitekey').textContent = sitekey;
+        setSnippet();
+        loadWidget();
+    }).catch(function (e) {
+        document.getElementById('widget-loading').textContent = 'Failed to create embed site: ' + e;
+    });
+
+    function loadWidget() {
+        var slot = document.getElementById('widget-slot');
+        slot.innerHTML = '';
+        var iframe = document.createElement('iframe');
+        iframe.src = BASE + '/embed?sitekey=' + sitekey + '&origin=' + encodeURIComponent(ORIGIN) + '&tier=easy';
+        iframe.style.width = '100%';
+        iframe.style.height = '300px';
+        iframe.style.border = '0';
+        iframe.setAttribute('frameborder', '0');
+        slot.appendChild(iframe);
+        log('→ iframe loaded: /embed?sitekey=' + sitekey + '&tier=easy');
+    }
+
+    // Listen for postMessage from the widget. Validate origin + source.
+    // Only ai-captcha messages are logged; everything else is silently ignored
+    // (a real host would never log every unrelated postMessage on the page).
+    window.addEventListener('message', function (event) {
+        var msg = event.data;
+        if (!msg || msg.source !== 'ai-captcha' || msg.version !== 1) {
+            return; // not ours — ignore silently
+        }
+        if (event.origin !== ORIGIN) {
+            log('✗ ignored ai-captcha message from origin ' + event.origin + ' (not ' + ORIGIN + ')');
+            return;
+        }
+        log('✓ ' + msg.type + (msg.token ? ' (token received)' : '') + (msg.reason ? ' — ' + msg.reason : ''));
+        if (msg.type === 'pass' && msg.token) {
+            token = msg.token;
+            verifyBtn.disabled = false;
+            verifyStatus.textContent = 'Token received. Click "Verify token" to call /api/siteverify.';
+        }
+        if (msg.type === 'fail') {
+            token = null;
+            verifyBtn.disabled = true;
+            verifyStatus.textContent = 'Challenge failed (' + msg.reason + '). Reload to retry.';
+        }
+    });
+
+    verifyBtn.addEventListener('click', function () {
+        if (!token) return;
+        verifyStatus.textContent = 'Verifying…';
+        verifyResult.style.display = 'block';
+        verifyResult.textContent = 'POST ' + BASE + '/api/siteverify  { secretkey: "***", response: "<token>" }';
+        fetch(BASE + '/api/siteverify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ secretkey: secretkey, response: token })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            verifyResult.textContent = JSON.stringify(d, null, 2);
+            verifyStatus.textContent = d.success ? '✅ Verified — token is valid.' : '❌ Rejected: ' + (d['error-codes'] || []).join(', ');
+        }).catch(function (e) {
+            verifyStatus.textContent = 'Verify call failed: ' + e;
+        });
+    });
+})();
+</script>
+
+{% endblock %}
