@@ -2,6 +2,14 @@
 
 <div align="center">
   <img src="docs/img/hero_banner.svg" alt="AI CAPTCHA Banner" width="100%" style="border-radius: 12px; margin-bottom: 16px;">
+
+  <p>
+    <a href="https://pypi.org/project/ai-captcha-uwu/"><img src="https://img.shields.io/pypi/v/ai-captcha-uwu.svg" alt="PyPI version"></a>
+    <a href="https://pypi.org/project/ai-captcha-uwu/"><img src="https://img.shields.io/pypi/pyversions/ai-captcha-uwu.svg" alt="Python versions"></a>
+    <a href="https://pypi.org/project/ai-captcha-uwu/"><img src="https://img.shields.io/pypi/l/ai-captcha-uwu.svg" alt="License: MIT"></a>
+    <a href="https://github.com/r3sbarra/ai-captcha"><img src="https://img.shields.io/badge/GitHub-r3sbarra%2Fai--captcha-181717?logo=github" alt="GitHub"></a>
+    <a href="https://github.com/r3sbarra/ai-captcha/actions"><img src="https://img.shields.io/github/actions/workflow/status/r3sbarra/ai-captcha/ci.yml?branch=main" alt="CI"></a>
+  </p>
 </div>
 
 **Reverse-CAPTCHA challenge app — proves you're an AI, not a human.**
@@ -17,6 +25,8 @@ Runs four ways:
 2. **AppManager plugin** — symlinked into `installed_apps/` and served at `/apps/ai-captcha/`.
 3. **Embedded** — dropped into any existing Flask project via `init_app()` or a Blueprint.
 4. **Iframe widget** — a reCAPTCHA-style drop-in for any third-party page (sitekey/secretkey + server-side `siteverify`).
+
+See live: [https://apps.richardmark.dev/apps/ai-captcha/](https://apps.richardmark.dev/apps/ai-captcha/)
 
 ---
 
@@ -84,12 +94,43 @@ Open the web UI at `http://localhost:5100/` to watch a challenge live.
 
 ## Install
 
+> **The default install is the standalone Flask app — no web UI server required.**
+> The `webui` extra is **optional** and only pulls in the production serving
+> stack (`gunicorn` + `redis`). You do **not** need it to run the app locally
+> with `flask` / `ai-captcha` — the built-in dev server serves the web UI at
+> `http://localhost:5100/` out of the box.
+
 ```bash
-pip install ai-captcha-uwu    # from PyPI
-pip install -e .                # from source (editable)
-pip install -e ".[dev]"        # with test deps
-pip install -e ".[webui]"       # with gunicorn + redis
+# From PyPI — standalone Flask app, no webui (default)
+pip install ai-captcha-uwu
+
+# From source (editable)
+pip install -e .
+
+# With test dependencies (development)
+pip install -e ".[dev]"
+
+# WITH the production web server stack (gunicorn + redis) — optional
+pip install "ai-captcha-uwu[webui]"
+# or, from source:
+pip install -e ".[webui]"
 ```
+
+After installing, run it standalone:
+
+```bash
+ai-captcha --port 5100
+# or
+python run.py
+# or
+flask --app ai_captcha.app run --port 5100
+```
+
+> **What's in the extras**
+>
+> - **default** — `flask`, `flask-sqlalchemy`, `pyjwt`, `appmanager-sdk` (standalone app, embeddable blueprint, iframe widget).
+> - **`[webui]`** — adds `gunicorn` + `redis` for production serving behind a reverse proxy / multiple workers. See `webui/` for the gunicorn config and Dockerfile.
+> - **`[dev]`** — pytest + coverage + build tooling.
 
 ---
 
@@ -267,8 +308,15 @@ sitekey. The `/embed` page emits a dynamic `frame-ancestors` CSP so only your
 registered origins can frame it (clickjacking defense).
 
 A live demo is served at `/embed-demo` (or the AppManager URL
-`/apps/ai-captcha/embed-demo`). See `docs/embedding.md` and `docs/api.md` for
-the full endpoint reference.
+`/apps/ai-captcha/embed-demo`).
+
+**Live hosted example:** the AppManager-deployed instance is running at
+<https://apps.richardmark.dev/apps/ai-captcha/> — the widget page
+(`/apps/ai-captcha/embed-demo`) shows the iframe widget in action, and the
+widget script is served from
+`https://apps.richardmark.dev/apps/ai-captcha/static/js/embed.js`.
+
+See `docs/embedding.md` and `docs/api.md` for the full endpoint reference.
 
 ---
 
