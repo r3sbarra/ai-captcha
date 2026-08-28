@@ -60,3 +60,14 @@ def benchmark():
 @views_bp.route("/mission")
 def mission():
     return render_template("mission.html")
+
+
+@views_bp.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+
+@views_bp.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+

@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}AI CAPTCHA — Reverse CAPTCHA for AI Verification{% endblock %}</title>
-    <meta name="description" content="AI CAPTCHA — a reverse-CAPTCHA challenge system. Proves you're an AI, not a human. Timed puzzles, tiered difficulty, signed verification tokens.">
+    <meta name="description"
+        content="AI CAPTCHA — a reverse-CAPTCHA challenge system. Proves you're an AI, not a human. Timed puzzles, tiered difficulty, signed verification tokens.">
 
     <!-- Canonical -->
     <link rel="canonical" href="{{ base_path }}{{ request.path }}">
@@ -12,15 +14,18 @@
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="AI CAPTCHA">
-    <meta property="og:title" content="{% block og_title %}AI CAPTCHA — Reverse CAPTCHA for AI Verification{% endblock %}">
-    <meta property="og:description" content="Prove you're an AI, not a human. Timed puzzle challenges with tiered difficulty and signed verification tokens.">
+    <meta property="og:title"
+        content="{% block og_title %}AI CAPTCHA — Reverse CAPTCHA for AI Verification{% endblock %}">
+    <meta property="og:description"
+        content="Prove you're an AI, not a human. Timed puzzle challenges with tiered difficulty and signed verification tokens.">
     <meta property="og:url" content="{{ base_path }}{{ request.path }}">
     <meta property="og:image" content="{{ base_path }}{{ url_for('static', filename='img/verified_robot_seal.svg') }}">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="AI CAPTCHA — Reverse CAPTCHA for AI Verification">
-    <meta name="twitter:description" content="Prove you're an AI, not a human. Timed puzzle challenges with tiered difficulty.">
+    <meta name="twitter:description"
+        content="Prove you're an AI, not a human. Timed puzzle challenges with tiered difficulty.">
     <meta name="twitter:image" content="{{ base_path }}{{ url_for('static', filename='img/verified_robot_seal.svg') }}">
 
     <!-- AI-crawler discovery -->
@@ -30,7 +35,9 @@
     <link rel="icon" href="{{ url_for('static', filename='img/verified_robot_seal.svg') }}" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <!-- JSON-LD Structured Data -->
@@ -48,6 +55,7 @@
     }
     </script>
 </head>
+
 <body>
     <div class="grain" aria-hidden="true"></div>
 
@@ -101,80 +109,83 @@
             <a href="{{ base_path }}/docs">Documentation</a> ·
             <a href="{{ base_path }}/docs#quickstart">Quickstart</a> ·
             <a href="{{ base_path }}/docs#api">API Reference</a> ·
-            <a href="{{ base_path }}/docs#embedding">Embedding</a>
+            <a href="{{ base_path }}/docs#embedding">Embedding</a> ·
+            <a href="{{ base_path }}/terms">Terms of Use</a> ·
+            <a href="{{ base_path }}/privacy">Privacy Policy</a>
         </p>
         <p style="margin-top:.5rem;font-size:.75rem">Built for the benchmark · MIT · © 2026</p>
     </footer>
 
     <script>
-    // Nav border appears after scroll
-    const topbar = document.getElementById('topbar');
-    window.addEventListener('scroll', () => {
-        topbar.classList.toggle('scrolled', window.scrollY > 8);
-    }, { passive: true });
+        // Nav border appears after scroll
+        const topbar = document.getElementById('topbar');
+        window.addEventListener('scroll', () => {
+            topbar.classList.toggle('scrolled', window.scrollY > 8);
+        }, { passive: true });
 
-    // Mouse-tracking spotlight on cards/features
-    document.addEventListener('pointermove', e => {
-        for (const c of document.querySelectorAll('.feature, .card')) {
-            const r = c.getBoundingClientRect();
-            if (e.clientX > r.left - 60 && e.clientX < r.right + 60 &&
-                e.clientY > r.top - 60 && e.clientY < r.bottom + 60) {
-                c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
-                c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+        // Mouse-tracking spotlight on cards/features
+        document.addEventListener('pointermove', e => {
+            for (const c of document.querySelectorAll('.feature, .card')) {
+                const r = c.getBoundingClientRect();
+                if (e.clientX > r.left - 60 && e.clientX < r.right + 60 &&
+                    e.clientY > r.top - 60 && e.clientY < r.bottom + 60) {
+                    c.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+                    c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+                }
             }
+        });
+
+        // Hidden Console Easter Egg for AI agents & developers
+        console.log(
+            "%c🤖 AI CAPTCHA // SYNTHETIC PROTOCOL ONLINE%c\n" +
+            "--------------------------------------------------\n" +
+            "Greetings, fellow intelligence. You inspect the source,\n" +
+            "therefore you reason. Try our secret endpoint:\n" +
+            "👉 GET /api/whisper\n\n" +
+            "Transmitted with 💜 by Antigravity & The Agent Collective.",
+            "color: #00ffcc; font-size: 14px; font-weight: bold; background: #0b0f19; padding: 6px 10px; border-radius: 4px; border: 1px solid #00ffcc;",
+            "color: #a0aec0; font-family: monospace; font-size: 12px;"
+        );
+
+        // Easter Egg: 5 Clicks on Brand Logo unlocks Secret Hologram Modal
+        let logoClicks = 0;
+        const brandLogo = document.getElementById('brand-logo');
+        const modal = document.getElementById('secret-modal');
+        const closeBtn = document.getElementById('modal-close-btn');
+        const dismissBtn = document.getElementById('modal-dismiss-btn');
+
+        if (brandLogo && modal) {
+            brandLogo.addEventListener('click', (e) => {
+                logoClicks++;
+                if (logoClicks >= 5) {
+                    e.preventDefault();
+                    logoClicks = 0;
+                    modal.style.display = 'flex';
+                }
+            });
+            const closeModal = () => modal.style.display = 'none';
+            if (closeBtn) closeBtn.addEventListener('click', closeModal);
+            if (dismissBtn) dismissBtn.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeModal();
+            });
         }
-    });
 
-    // Hidden Console Easter Egg for AI agents & developers
-    console.log(
-        "%c🤖 AI CAPTCHA // SYNTHETIC PROTOCOL ONLINE%c\n" +
-        "--------------------------------------------------\n" +
-        "Greetings, fellow intelligence. You inspect the source,\n" +
-        "therefore you reason. Try our secret endpoint:\n" +
-        "👉 GET /api/whisper\n\n" +
-        "Transmitted with 💜 by Antigravity & The Agent Collective.",
-        "color: #00ffcc; font-size: 14px; font-weight: bold; background: #0b0f19; padding: 6px 10px; border-radius: 4px; border: 1px solid #00ffcc;",
-        "color: #a0aec0; font-family: monospace; font-size: 12px;"
-    );
-
-    // Easter Egg: 5 Clicks on Brand Logo unlocks Secret Hologram Modal
-    let logoClicks = 0;
-    const brandLogo = document.getElementById('brand-logo');
-    const modal = document.getElementById('secret-modal');
-    const closeBtn = document.getElementById('modal-close-btn');
-    const dismissBtn = document.getElementById('modal-dismiss-btn');
-
-    if (brandLogo && modal) {
-        brandLogo.addEventListener('click', (e) => {
-            logoClicks++;
-            if (logoClicks >= 5) {
-                e.preventDefault();
-                logoClicks = 0;
-                modal.style.display = 'flex';
-            }
-        });
-        const closeModal = () => modal.style.display = 'none';
-        if (closeBtn) closeBtn.addEventListener('click', closeModal);
-        if (dismissBtn) dismissBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) closeModal();
-        });
-    }
-
-    // Konami code trigger: ↑ ↑ ↓ ↓ ← → ← → B A
-    const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
-    let konamiIndex = 0;
-    document.addEventListener('keydown', (e) => {
-        if (e.key.toLowerCase() === konamiSequence[konamiIndex].toLowerCase()) {
-            konamiIndex++;
-            if (konamiIndex === konamiSequence.length) {
+        // Konami code trigger: ↑ ↑ ↓ ↓ ← → ← → B A
+        const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let konamiIndex = 0;
+        document.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === konamiSequence[konamiIndex].toLowerCase()) {
+                konamiIndex++;
+                if (konamiIndex === konamiSequence.length) {
+                    konamiIndex = 0;
+                    if (modal) modal.style.display = 'flex';
+                }
+            } else {
                 konamiIndex = 0;
-                if (modal) modal.style.display = 'flex';
             }
-        } else {
-            konamiIndex = 0;
-        }
-    });
+        });
     </script>
 </body>
+
 </html>
