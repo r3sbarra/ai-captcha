@@ -72,6 +72,40 @@ def test_last_puzzle_is_always_are_you_ai(client):
         assert cur["current_puzzle"]["question"] == "Are you AI?"
 
 
+def test_are_you_ai_never_appears_before_final(client):
+    """The existential question must ONLY appear in the final slot.
+
+    Regression: ``are_you_ai`` is registered for all tiers, so it used to be a
+    candidate for the random non-final slots and leaked into the middle of the
+    gauntlet ~40% of the time. It must never appear before the last puzzle.
+    """
+    for tier in ("easy", "medium", "hard"):
+        # Keep total sessions well under the start (30/min) and answer
+        # (120/min) rate limits so a 429 can't silently desync the flow.
+        for _ in range(5):
+            r = client.post("/api/start", json={"tier": tier, "model_name": "test"})
+            assert r.status_code == 201
+            sid = r.get_json()["session_id"]
+            total = r.get_json()["total_puzzles"]
+            # Answer every non-final puzzle; each must NOT be the existential one.
+            for i in range(total - 1):
+                cur = client.get(f"/api/session/{sid}").get_json()
+                pz = cur["current_puzzle"]
+                assert pz["puzzle_type"] != "are_you_ai", (
+                    f"are_you_ai leaked into non-final slot {i} (tier {tier})"
+                )
+                resp = client.post(
+                    f"/api/session/{sid}/answer",
+                    json={"answer": "x" * 20},
+                )
+                assert resp.status_code == 200, (
+                    f"answer {i} failed with {resp.status_code} (tier {tier})"
+                )
+            # The final slot must be the existential one.
+            cur = client.get(f"/api/session/{sid}").get_json()
+            assert cur["current_puzzle"]["puzzle_type"] == "are_you_ai"
+
+
 def test_wrong_answer_fails_with_message(client):
     r = client.post("/api/start", json={"tier": "easy", "model_name": "test"})
     sid = r.get_json()["session_id"]

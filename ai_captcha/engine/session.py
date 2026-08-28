@@ -99,9 +99,18 @@ class SessionManager:
         if session.current_puzzle_index == session.total_puzzles - 1:
             ptype = "are_you_ai"
         else:
+            # Never let the existential question leak into a non-final slot.
+            # Filter it out of the picked pool; re-pick to fill any gap left by
+            # the filter so the list always has enough entries.
             puzzle_types = pick_puzzle_types(
                 session.tier, session.total_puzzles - 1
             )
+            puzzle_types = [t for t in puzzle_types if t != "are_you_ai"]
+            while len(puzzle_types) < session.total_puzzles - 1:
+                puzzle_types += [
+                    t for t in pick_puzzle_types(session.tier, 1)
+                    if t != "are_you_ai"
+                ]
             ptype = puzzle_types[session.current_puzzle_index]
         gen = get_generator(ptype)
         puzzle = gen.generate(session.tier)
